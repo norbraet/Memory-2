@@ -1,26 +1,33 @@
 import logging
-from services.FaceRecognitionService import FaceRecognitionService
+from sensors.FaceRecognition import FaceRecognition
+from dataclass.Message import Message
+from queue import Queue
 
-if __name__ == "__main__":
+def main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
-    fr_service = FaceRecognitionService()
-    
+
+    message_queue = Queue()
+    fr_name = "FaceRecognition"
+    face_recognition = FaceRecognition(
+        service_name = fr_name, 
+        message_queue = message_queue,
+        debug = True
+    )
+
     try:
-        fr_service.start_camera()
-        fr_service.run_in_background()
+        face_recognition.start()
 
         while True:
-            # Check for detected faces in the queue
-            detected_faces = fr_service.get_detected_faces()
-            if detected_faces is not None and len(detected_faces) > 0:
-                logging.info(f"Detected faces: {detected_faces}")
-                # Main program logic to handle faces can go here
-            else:
-                logging.debug("No faces detected at this time.")
-            
-            """ time.sleep(0.1)  # Optional, to control the loop interval """
-
+            message = message_queue.get()  # Retrieve Message object
+            if isinstance(message, Message):
+                logging.info(f"Received message from {message.service}: {message.data}")
+                if message.service == fr_name:
+                    detected_faces = message.data
+                    logging.info(f"Detected faces: {detected_faces}")
     except KeyboardInterrupt:
-        logging.info("Interrupted by user")
+        logging.info("Shutting down...")
     finally:
-        fr_service.stop_service()
+        face_recognition.stop()
+
+if __name__ == "__main__":
+    main()
