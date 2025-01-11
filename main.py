@@ -14,13 +14,13 @@ def main():
     face_recognition = FaceRecognition(
         service_name = fr_name, 
         message_queue = message_queue,
-        debug = True
+        debug = False
     )
 
     ultrasonic_sensor = UltrasonicSensor(
         service_name = uss_name,
         message_queue= message_queue,
-        debug = True
+        debug = False
     )
 
     try:
