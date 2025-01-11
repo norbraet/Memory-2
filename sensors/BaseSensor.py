@@ -5,7 +5,7 @@ from queue import Queue, Empty
 from dataclass.Message import Message
 
 class BaseSensor(ABC):
-    def __init__(self, service_name, message_queue=None, config=None):
+    def __init__(self, service_name, message_queue=None, config=None, debug=False):
         """
         Base class for all services.
         :param service_name: Unique name for the service (e.g., "FaceRecognitionService").
@@ -19,6 +19,7 @@ class BaseSensor(ABC):
         self._stop_event = threading.Event()
         self._thread = None
         self._is_running = False
+        self.debug = debug
         self._logger = logging.getLogger(service_name)
         self._logger.setLevel(logging.INFO)
         self._logger.info(f"{service_name} initialized")
