@@ -97,4 +97,4 @@ class FaceRecognition(BaseSensor):
         }
 
         if len(detected_faces) > 0:
-            self.send_message(data = {"faces": detected_faces})
+            self.send_message(data = True)

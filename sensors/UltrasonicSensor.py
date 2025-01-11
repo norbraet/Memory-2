@@ -41,9 +41,5 @@ class UltrasonicSensor(BaseSensor):
         self.sensor.close()
 
     def handle_distance(self, distance):
-        if distance < 20:
-            message = f"Distance: {distance} cm - Hi!"
-            self.send_message(data = message)
-        elif distance > 30:
-            message = f"Distance: {distance} cm - Bye!"
-            self.send_message(data = message)
+        if distance < 100:
+            self.send_message(data = distance)
