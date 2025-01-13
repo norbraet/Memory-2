@@ -1,6 +1,6 @@
 from gpiozero import DistanceSensor
 from sensors.BaseSensor import BaseSensor
-from dataclass import UltrasonicConfig
+from dataclass.UltrasonicConfig import UltrasonicConfig
 import time
 
 class UltrasonicSensor(BaseSensor):
@@ -11,7 +11,6 @@ class UltrasonicSensor(BaseSensor):
                  config: UltrasonicConfig = None):
         config = config or UltrasonicConfig()
         super().__init__(service_name, message_queue, config, debug)
-        
         self.sensor = DistanceSensor(
             echo = config.echo_pin,
             trigger = config.trigger_pin,
@@ -28,22 +27,13 @@ class UltrasonicSensor(BaseSensor):
                 distance = self.sensor.distance
                 if distance is not None:
                     distance_cm = int(distance * 100)
-                    self.handle_distance(distance_cm)
+                    self._logger.debug(f"{distance_cm} cm")
+                    self.send_message(service_name = self.service_name,
+                                      data = distance_cm)  
                 time.sleep(0.1)
         except Exception as e:
             self._logger.error(f"Error reading distance: {e}")
-
-        distance = int(self.sensor.distance * 100)
-        self.handle_distance(distance)
        
 
     def cleanup(self):
         self.sensor.close()
-
-    def handle_distance(self, distance):
-        if distance < 20:
-            message = f"Distance: {distance} cm - Hi!"
-            self.send_message(data = message)
-        elif distance > 30:
-            message = f"Distance: {distance} cm - Bye!"
-            self.send_message(data = message)

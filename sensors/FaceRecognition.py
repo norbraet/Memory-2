@@ -3,13 +3,13 @@ import os
 import time
 from picamera2 import Picamera2
 from sensors.BaseSensor import BaseSensor
-from dataclass import FaceRecognitionConfig
+from dataclass.FaceRecognitionConfig import FaceRecognitionConfig
 
 class FaceRecognition(BaseSensor):
     def __init__(self,
                  service_name = "FaceRecognitionService",
-                 cascade_path = "face_recognition/haarcascade_frontalface_default.xml",
-                 debug_output_dir = "detected_faces",
+                 cascade_path = "config/haarcascade_frontalface_default.xml",
+                 debug_output_dir = "logs/detected_faces",
                  debug = False,
                  message_queue = None,
                  config: FaceRecognitionConfig = None):
@@ -38,7 +38,7 @@ class FaceRecognition(BaseSensor):
     def loop(self):
         frame = self.camera.capture_array()
 
-        self.update_face_tracks(frame)
+        self._update_face_tracks(frame)
         if self.debug:
             cv2.imshow("Camera", cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
             cv2.waitKey(3)
@@ -48,7 +48,7 @@ class FaceRecognition(BaseSensor):
             self.camera.stop()
             self._logger.info("Camera stopped and resources released")
 
-    def update_face_tracks(self, frame):
+    def _update_face_tracks(self, frame):
         small_frame = cv2.resize(frame, (0, 0), fx=self.config.downscale_factor, fy=self.config.downscale_factor)
 
         gray = cv2.cvtColor(small_frame, cv2.COLOR_BGR2GRAY)
@@ -97,4 +97,7 @@ class FaceRecognition(BaseSensor):
         }
 
         if len(detected_faces) > 0:
-            self.send_message(data = {"faces": detected_faces})
+            if self.debug:
+                self._logger.debug(f"Face: {detected_faces}")
+            self.send_message(service_name = self.service_name,
+                              data = {"faces": detected_faces})
