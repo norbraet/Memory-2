@@ -72,14 +72,6 @@ class ImageDisplayOutput(BaseOutput):
         self._logger.info("Cleaning up ImageDisplayOutput")
         cv2.destroyWindow(self.window_name)
     
-    def update_image(self, image):
-        """
-        Add a new image to the update queue to be displayed.
-        :param image: The new image to display.
-        """
-        if image is not None:
-            self.update_queue.put(image)
-            self._logger.info("Image updated.")
 
     def _apply_black_white(self, image, level):
         """
