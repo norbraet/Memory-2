@@ -1,12 +1,12 @@
 import cv2
 import queue
 import time
-from sensors.BaseSensor import BaseSensor
+from outputs.BaseOutput import BaseOutput
 
-class ImageDisplayOutput(BaseSensor):
-    def __init__(self, service_name, message_queue=None, config=None, debug=False, image_path="./assets/image.png"):
+class ImageDisplayOutput(BaseOutput):
+    def __init__(self, service_name, message_queue=None, config=None, debug=False, image_path="./assets/images/image.png"):
         """
-        A sensor-like class for displaying images, extending BaseSensor.
+        A sensor-like class for displaying images, extending BaseOutput.
         :param service_name: Unique name for the service.
         :param message_queue: Shared queue for communication.
         :param config: Optional configuration dictionary.
@@ -58,7 +58,7 @@ class ImageDisplayOutput(BaseSensor):
         Applies the filter to the current image based on the provided data.
         """
         if self.current_image is not None:
-            self.current_image = self.apply_black_white(self.current_image, data)
+            self.current_image = self._apply_black_white(self.current_image, data)
             cv2.imshow(self.window_name, self.current_image)
             cv2.waitKey(1)
         else:
@@ -81,7 +81,7 @@ class ImageDisplayOutput(BaseSensor):
             self.update_queue.put(image)
             self._logger.info("Image updated.")
 
-    def apply_black_white(self, image, level):
+    def _apply_black_white(self, image, level):
         """
         Gradually convert the image to black and white, or restore color.
         :param image: The original image.
@@ -101,7 +101,7 @@ class ImageDisplayOutput(BaseSensor):
         
         return black_white_image
 
-    def apply_blur(self, image, level):
+    def _apply_blur(self, image, level):
         """
         Gradually apply a blur filter, or restore sharpness.
         :param image: The image to blur.
@@ -117,7 +117,7 @@ class ImageDisplayOutput(BaseSensor):
             return cv2.GaussianBlur(image, (max(3, kernel_size - 2), max(3, kernel_size - 2)), 0)
         return image
 
-    def apply_brightness(self, image, level):
+    def _apply_brightness(self, image, level):
         """
         Gradually apply brightness change, or reduce brightness.
         :param image: The image to adjust brightness.
