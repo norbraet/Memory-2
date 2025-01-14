@@ -1,7 +1,7 @@
 import cv2
 import queue
 import time
-import threading
+import pygame
 import numpy as np
 from outputs.BaseOutput import BaseOutput
 from enum import Enum, auto
@@ -36,8 +36,12 @@ class ImageDisplayOutput(BaseOutput):
         Perform setup tasks, like loading the initial image and setting up the display window.
         """
         self._logger.info("Setting up ImageDisplayOutput")
-        cv2.namedWindow(self.window_name, cv2.WND_PROP_FULLSCREEN)
-        cv2.setWindowProperty(self.window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+        
+        pygame.init()
+        self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)  # You can adjust the size as needed
+        pygame.mouse.set_visible(False)
+        pygame.display.set_caption(self.window_name)
+        
         self.current_image = cv2.imread(self.image_path)
 
         if self.current_image is None:
@@ -60,15 +64,18 @@ class ImageDisplayOutput(BaseOutput):
         while not self._stop_event.is_set():
             if not self.message_queue.empty():
                 current_image = self.message_queue.get()
-                cv2.imshow(self.window_name, current_image)
-                cv2.waitKey(1)
+                image_rgb = cv2.cvtColor(current_image, cv2.COLOR_BGR2RGB)
+                image_rgb = np.transpose(image_rgb, (1, 0, 2))  # Swap width and height dimensions
+                pygame_image = pygame.surfarray.make_surface(image_rgb)
+                self.screen.blit(pygame_image, (0, 0))
+                pygame.display.update()
 
     def cleanup(self):
         """
         Clean up resources, like destroying the display window.
         """
         self._logger.info("Cleaning up ImageDisplayOutput")
-        cv2.destroyWindow(self.window_name)
+        pygame.quit()
     
     def _apply_black_white(self, image, level):
         """
@@ -155,3 +162,4 @@ class ImageDisplayOutput(BaseOutput):
         Gradually restore the image step by step.
         """
         # TODO: Needs to be implemented
+        pass

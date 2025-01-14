@@ -19,3 +19,4 @@ class BaseSensor(ThreadedService, MessagingService):
     @abstractmethod
     def cleanup(self):
         pass
+    
