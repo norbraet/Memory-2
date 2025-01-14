@@ -1,10 +1,17 @@
 import logging
 import time
+from enum import Enum
 from sensors.FaceRecognition import FaceRecognition
 from sensors.TouchSensor import TouchSensor
 from sensors.UltrasonicSensor import UltrasonicSensor
 from outputs.ImageDisplayOutput import ImageDisplayOutput
 from queue import Queue
+
+class Services(Enum):
+    FaceRecognition = "Face Recognition"
+    UltrasonicSensor = "Ultrasonic Sensor"
+    TouchSensor = "Touch Sensor"
+    ImageDisplayOutput = "Image Display Output"
 
 def initialize_services(services):
     """
@@ -29,7 +36,7 @@ def process_messages(message_queue):
     """
     while not message_queue.empty():
         message = message_queue.get()
-       # logging.info(f"Received message from {message.service}: {message.data}")
+        logging.info(f"Received message from {message.service}: {message.data}")
 
 def main():
     logging.basicConfig(level=logging.INFO, format="%(levelname)-8s :: %(name)-22s :: %(message)s")
@@ -40,16 +47,18 @@ def main():
     touch_message_queue = Queue()
 
     # Services
-    services = [
-        FaceRecognition(service_name = "Face Recognition", message_queue = sensor_message_queue, debug = False),
-        UltrasonicSensor(service_name = "Ultrasonic Sensor", message_queue = sensor_message_queue, debug = False),
-        TouchSensor(service_name = "Touch Sensor", message_queue = touch_message_queue, debug = False),
-        ImageDisplayOutput(service_name = "Image Display Output", message_queue = output_message_queue)
-    ]
+    services = {
+        Services.FaceRecognition: FaceRecognition(service_name = Services.FaceRecognition.value, message_queue = sensor_message_queue, debug = False),
+        Services.UltrasonicSensor: UltrasonicSensor(service_name = Services.UltrasonicSensor.value, message_queue = sensor_message_queue, debug = True),
+        Services.TouchSensor: TouchSensor(service_name = Services.TouchSensor.value, message_queue = touch_message_queue, debug = False),
+        Services.ImageDisplayOutput: ImageDisplayOutput(service_name = Services.ImageDisplayOutput.value, message_queue = output_message_queue)
+    }
 
     try:
-        initialize_services(services)
+        initialize_services(services.values())
         logging.info("All services started. Entering main loop")
+
+        services[Services.ImageDisplayOutput].trigger_action()
 
         while True:
             time.sleep(1)
@@ -57,11 +66,10 @@ def main():
             process_messages(touch_message_queue)
             process_messages(output_message_queue)
 
-            # image_display.trigger_action(10)
     except KeyboardInterrupt:
         logging.info("Keyboard interrupt received. Shutting down...")
     finally:
-        stop_services(services)
+        stop_services(services.values())
         logging.info("All services stopped. Exiting")
         
 

@@ -1,10 +1,18 @@
 import cv2
 import queue
 import time
+import threading
+import numpy as np
 from outputs.BaseOutput import BaseOutput
+from enum import Enum, auto
+
+class Stage(Enum):
+    BLACK_WHITE = auto()
+    BLURRY = auto()
+    LIGHTNESS = auto()
 
 class ImageDisplayOutput(BaseOutput):
-    def __init__(self, service_name, message_queue=None, config=None, debug=False, image_path="./assets/images/image.png"):
+    def __init__(self, service_name, message_queue = None, config = None, debug = False, image_path = "./assets/images/image.png"):
         """
         A sensor-like class for displaying images, extending BaseOutput.
         :param service_name: Unique name for the service.
@@ -16,9 +24,13 @@ class ImageDisplayOutput(BaseOutput):
         super().__init__(service_name, message_queue, config, debug)
         self.window_name = "Image Display"
         self.image_path = image_path
+        self.original_image = None
         self.current_image = None
-        self.update_queue = queue.Queue()
 
+        self.stage = Stage.BLACK_WHITE
+        self.level = 0
+        self.reverse = False
+    
     def setup(self):
         """
         Perform setup tasks, like loading the initial image and setting up the display window.
@@ -32,38 +44,24 @@ class ImageDisplayOutput(BaseOutput):
             self._logger.error(f"Failed to load image from path: {self.image_path}")
         else:
             self._logger.info("Initial image loaded successfully.")
-            cv2.imshow(self.window_name, self.current_image)
-            cv2.waitKey(1)  # Ensure the initial image is displayed
-
-
+            self.original_image = self.current_image.copy()
 
     def loop(self):
-        """
-        Main loop for the image display service.
-        Continuously checks for new images in the update queue and updates the display.
-        """
-        try:
-            while not self._stop_event.is_set():
-                if not self.update_queue.empty():
-                    queue_item = self.update_queue.get()
-                    if queue_item is not None:
-                        self.trigger_action(queue_item)
-                time.sleep(0.1)
-        except Exception as e:
-            self._logger.error(f"Error reading queue item: {e}")
+        while not self._stop_event.is_set():
+            self.current_image = self.degrade_image()
+            try:
+                self.message_queue.put_nowait(self.current_image)
+            except queue.Full:
+                self._logger.warning("Queue is full, skipping frame")
+            time.sleep(1)
 
-
-    def trigger_action(self, data):
-        """
-        Applies the filter to the current image based on the provided data.
-        """
-        if self.current_image is not None:
-            self.current_image = self._apply_black_white(self.current_image, data)
-            cv2.imshow(self.window_name, self.current_image)
-            cv2.waitKey(1)
-        else:
-            self._logger.error("No image loaded to apply action.")
-
+    def trigger_action(self, data = None):
+        """Display images in a loop. This function works only in the main thread due to the restriction of cv2"""
+        while not self._stop_event.is_set():
+            if not self.message_queue.empty():
+                current_image = self.message_queue.get()
+                cv2.imshow(self.window_name, current_image)
+                cv2.waitKey(1)
 
     def cleanup(self):
         """
@@ -72,7 +70,6 @@ class ImageDisplayOutput(BaseOutput):
         self._logger.info("Cleaning up ImageDisplayOutput")
         cv2.destroyWindow(self.window_name)
     
-
     def _apply_black_white(self, image, level):
         """
         Gradually convert the image to black and white, or restore color.
@@ -81,45 +78,80 @@ class ImageDisplayOutput(BaseOutput):
         """
         hls_image = cv2.cvtColor(image, cv2.COLOR_BGR2HLS)
         h, l, s = cv2.split(hls_image)
-
+        level = max(0, min(level, 100))
+        scale_factor = (100 - level) / 100.0
         
-        s = cv2.multiply(s, (100 - level) / 100.0)
-
+        s = cv2.multiply(s, scale_factor)
+        s = cv2.min(s, 255).astype(np.uint8)
+        
+        hls_image = cv2.merge([h, l, s])
         
         self._logger.debug(f"Applied black & white filter with level {level}% saturation reduction")
-
-        hls_image = cv2.merge([h, l, s])
-        black_white_image = cv2.cvtColor(hls_image, cv2.COLOR_HLS2BGR)
         
-        return black_white_image
+        return cv2.cvtColor(hls_image, cv2.COLOR_HLS2BGR)
 
     def _apply_blur(self, image, level):
         """
-        Gradually apply a blur filter, or restore sharpness.
+        Gradually apply a subtle blur filter, or restore sharpness.
         :param image: The image to blur.
         :param level: The current blur level (0 to 10).
         """
-        kernel_size = 3 + (level * 2)  # Kernel size: 3, 5, 7, ..., 21
-        if kernel_size > 21:
-            kernel_size = 21
+        max_kernel_size = 11
+        level = max(0, min(level, 100))
+        scaled_level = int((level / 100) * (max_kernel_size - 3))
+        kernel_size = 3 + scaled_level
 
-        if self.blur_direction == 'negative':
-            return cv2.GaussianBlur(image, (kernel_size, kernel_size), 0)
-        elif self.blur_direction == 'positive' and level > 0:
-            return cv2.GaussianBlur(image, (max(3, kernel_size - 2), max(3, kernel_size - 2)), 0)
-        return image
+        if kernel_size % 2 == 0:
+            kernel_size += 1
+        
+        return cv2.GaussianBlur(image, (kernel_size, kernel_size), 0)
 
-    def _apply_brightness(self, image, level):
+    def _apply_darkness(self, image, level):
         """
         Gradually apply brightness change, or reduce brightness.
         :param image: The image to adjust brightness.
         :param level: The current brightness level (0 to 10).
         """
-        alpha = 1.0  # No contrast change
-        if self.brightness_direction == 'negative':
-            beta = 10 * level  # Decrease brightness
-        elif self.brightness_direction == 'positive':
-            beta = -10 * level  # Increase brightness
-        return cv2.convertScaleAbs(image, alpha=alpha, beta=beta)
+        hls_image = cv2.cvtColor(image, cv2.COLOR_BGR2HLS)
+        h, l, s = cv2.split(hls_image)
+        level = max(0, min(level, 100))
+        scale_factor = (100 - level) / 100.0
+        
+        l = cv2.multiply(l, scale_factor)
+        l = cv2.min(l, 255).astype(np.uint8)
+        
+        hls_image = cv2.merge([h, l, s])
+        self._logger.debug(f"Applied darkness filter with level {level}%")
+        
+        return cv2.cvtColor(hls_image, cv2.COLOR_HLS2BGR)
+    
+    def degrade_image(self):
+        match self.stage:
+            case Stage.BLACK_WHITE:
+                if self.level < 100:
+                    self.level += 5
+                    return self._apply_black_white(self.current_image, self.level)
+                else:
+                    self.stage = Stage.BLURRY
+                    self.level = 0
+                    return self.current_image
+            case Stage.BLURRY:
+                if self.level < 100:
+                    self.level += 5
+                    return self._apply_blur(self.current_image, self.level)
+                else:
+                    self.stage = Stage.LIGHTNESS
+                    self.level = 0
+                    return self.current_image
+            case Stage.LIGHTNESS:
+                if self.level < 100:
+                    self.level += 5
+                    return self._apply_darkness(self.current_image, self.level)
+                else:
+                    return self.current_image
 
-
+    def restore_image(self):
+        """
+        Gradually restore the image step by step.
+        """
+        # TODO: Needs to be implemented
