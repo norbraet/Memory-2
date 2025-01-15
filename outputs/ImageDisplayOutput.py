@@ -14,7 +14,7 @@ class Stage(Enum):
 class ImageDisplayOutput(BaseOutput):
     LEVEL_LIMIT = 100
 
-    def __init__(self, service_name, message_queue = None, config = None, debug = False, image_path = "./assets/images/image.png", level_steps = 5, step_intervall_seconds = 1):
+    def __init__(self, service_name, message_queue = None, config = None, debug = False, image_path = "./assets/images/image.png", level_steps = 5, step_intervall_seconds = 0.1):
         """
         A sensor-like class for displaying images, extending BaseOutput.
         :param service_name: Unique name for the service.
@@ -57,7 +57,13 @@ class ImageDisplayOutput(BaseOutput):
             self.original_image = self.current_image.copy()
 
     def loop(self):
-        self.current_image = self.degrade_image()
+        if not self.reverse:
+            self._logger.info("Degrading image...")
+            self.current_image = self.degrade_image()
+        else:
+            self._logger.info("Restoring image...")
+            self.current_image = self.restore_image()
+        
         try:
             self.message_queue.put_nowait(self.current_image)
         except queue.Full:
@@ -115,7 +121,9 @@ class ImageDisplayOutput(BaseOutput):
 
         if kernel_size % 2 == 0:
             kernel_size += 1
-        
+
+        self._logger.debug(f"Applied blur filter with level {level}%")
+
         return cv2.GaussianBlur(image, (kernel_size, kernel_size), 0)
 
     def _apply_darkness(self, image, level):
@@ -160,11 +168,52 @@ class ImageDisplayOutput(BaseOutput):
                     self.level += self.level_steps
                     return self._apply_darkness(self.current_image, self.level)
                 else:
+                    self.toggle_reverse() # Muss später raus genommen werden
                     return self.current_image
+            case _:
+                return self.current_image
 
     def restore_image(self):
         """
-        Gradually restore the image step by step.
+        Gradually restore the image step by step, reversing the degradation stages.
         """
         # TODO: Needs to be implemented
-        pass
+        match self.stage:
+            case Stage.LIGHTNESS:
+                if self.level > 0:
+                    self._logger.info(f"Restauration - Stage: {self.stage} - Level before: {self.level}")
+                    self.level -= self.level_steps
+                    self._logger.info(f"Restauration - Stage: {self.stage} - Level after: {self.level}")
+                    temp_image = self._apply_black_white(self.original_image, self.LEVEL_LIMIT)
+                    temp_image = self._apply_blur(temp_image, self.LEVEL_LIMIT)
+                    return self._apply_darkness(temp_image, self.level)
+                else:
+                    self.stage = Stage.BLURRY
+                    self.level = self.LEVEL_LIMIT
+                    return self.current_image
+            case Stage.BLURRY:
+                if self.level > 0:
+                    self._logger.info(f"Blurry - Stage: {self.stage} - Level before: {self.level}")
+                    self.level -= self.level_steps
+                    self._logger.info(f"Restauration - Stage: {self.stage} - Level after: {self.level}")
+                    temp_image = self._apply_black_white(self.original_image, self.LEVEL_LIMIT)
+                    return self._apply_blur(temp_image, self.level)
+                else:
+                    self.stage = Stage.BLACK_WHITE
+                    self.level = self.LEVEL_LIMIT
+                    return self.current_image
+            case Stage.BLACK_WHITE:
+                if self.level > 0:
+                    self._logger.info(f"BLACK_WHITE - Stage: {self.stage} - Level before: {self.level}")
+                    self.level -= self.level_steps
+                    self._logger.info(f"Restauration - Stage: {self.stage} - Level after: {self.level}")
+                    return self._apply_black_white(self.original_image, self.level)
+                else:
+                    self.toggle_reverse() # Muss später raus genommen werden
+                    return self.current_image
+            case _:
+                return self.current_image
+            
+    def toggle_reverse(self):
+        self.reverse = not self.reverse
+        

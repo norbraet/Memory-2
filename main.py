@@ -49,7 +49,7 @@ def main():
     # Services
     services = {
         Services.FaceRecognition: FaceRecognition(service_name = Services.FaceRecognition.value, message_queue = sensor_message_queue, debug = False),
-        Services.UltrasonicSensor: UltrasonicSensor(service_name = Services.UltrasonicSensor.value, message_queue = sensor_message_queue, debug = True),
+        Services.UltrasonicSensor: UltrasonicSensor(service_name = Services.UltrasonicSensor.value, message_queue = sensor_message_queue, debug = False),
         Services.TouchSensor: TouchSensor(service_name = Services.TouchSensor.value, message_queue = touch_message_queue, debug = False),
         Services.ImageDisplayOutput: ImageDisplayOutput(service_name = Services.ImageDisplayOutput.value, message_queue = output_message_queue)
     }
