@@ -57,13 +57,12 @@ class ImageDisplayOutput(BaseOutput):
             self.original_image = self.current_image.copy()
 
     def loop(self):
-        while not self._stop_event.is_set():
-            self.current_image = self.degrade_image()
-            try:
-                self.message_queue.put_nowait(self.current_image)
-            except queue.Full:
-                self._logger.warning("Queue is full, skipping frame")
-            time.sleep(self.step_intervall_seconds)
+        self.current_image = self.degrade_image()
+        try:
+            self.message_queue.put_nowait(self.current_image)
+        except queue.Full:
+            self._logger.warning("Queue is full, skipping frame")
+        time.sleep(self.step_intervall_seconds)
 
     def trigger_action(self, data = None):
         """Display images in a loop. This function works only in the main thread due to the restriction of cv2"""

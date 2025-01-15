@@ -23,14 +23,13 @@ class UltrasonicSensor(BaseSensor):
 
     def loop(self):
         try:
-            while not self._stop_event.is_set():
-                distance = self.sensor.distance
-                if distance is not None:
-                    distance_cm = int(distance * 100)
-                    self._logger.debug(f"{distance_cm} cm")
-                    self.send_message(service_name = self.service_name,
-                                      data = distance_cm)  
-                time.sleep(0.1)
+            distance = self.sensor.distance
+            if distance is not None:
+                distance_cm = int(distance * 100)
+                self._logger.debug(f"{distance_cm} cm")
+                self.send_message(service_name = self.service_name,
+                                    data = distance_cm)  
+            time.sleep(0.1)
         except Exception as e:
             self._logger.error(f"Error reading distance: {e}")
        
