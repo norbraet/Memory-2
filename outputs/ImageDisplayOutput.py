@@ -12,7 +12,9 @@ class Stage(Enum):
     LIGHTNESS = auto()
 
 class ImageDisplayOutput(BaseOutput):
-    def __init__(self, service_name, message_queue = None, config = None, debug = False, image_path = "./assets/images/image.png"):
+    LEVEL_LIMIT = 100
+
+    def __init__(self, service_name, message_queue = None, config = None, debug = False, image_path = "./assets/images/image.png", level_steps = 5, step_intervall_seconds = 1):
         """
         A sensor-like class for displaying images, extending BaseOutput.
         :param service_name: Unique name for the service.
@@ -20,16 +22,20 @@ class ImageDisplayOutput(BaseOutput):
         :param config: Optional configuration dictionary.
         :param debug: Enable debugging logs.
         :param image_path: Path to the initial image.
+        :param level_steps: Step interval until the level limit is reached
+        :param step_interval_seconds: Time interval between steps, in seconds.
         """
         super().__init__(service_name, message_queue, config, debug)
-        self.window_name = "Image Display"
+        self.window_name = self.service_name
         self.image_path = image_path
         self.original_image = None
         self.current_image = None
 
         self.stage = Stage.BLACK_WHITE
         self.level = 0
+        self.level_steps = level_steps
         self.reverse = False
+        self.step_intervall_seconds = step_intervall_seconds
     
     def setup(self):
         """
@@ -57,7 +63,7 @@ class ImageDisplayOutput(BaseOutput):
                 self.message_queue.put_nowait(self.current_image)
             except queue.Full:
                 self._logger.warning("Queue is full, skipping frame")
-            time.sleep(1)
+            time.sleep(self.step_intervall_seconds)
 
     def trigger_action(self, data = None):
         """Display images in a loop. This function works only in the main thread due to the restriction of cv2"""
@@ -85,8 +91,8 @@ class ImageDisplayOutput(BaseOutput):
         """
         hls_image = cv2.cvtColor(image, cv2.COLOR_BGR2HLS)
         h, l, s = cv2.split(hls_image)
-        level = max(0, min(level, 100))
-        scale_factor = (100 - level) / 100.0
+        level = max(0, min(level, self.LEVEL_LIMIT))
+        scale_factor = (self.LEVEL_LIMIT - level) / float(self.LEVEL_LIMIT)
         
         s = cv2.multiply(s, scale_factor)
         s = cv2.min(s, 255).astype(np.uint8)
@@ -104,8 +110,8 @@ class ImageDisplayOutput(BaseOutput):
         :param level: The current blur level (0 to 10).
         """
         max_kernel_size = 11
-        level = max(0, min(level, 100))
-        scaled_level = int((level / 100) * (max_kernel_size - 3))
+        level = max(0, min(level, self.LEVEL_LIMIT))
+        scaled_level = int((level / self.LEVEL_LIMIT) * (max_kernel_size - 3))
         kernel_size = 3 + scaled_level
 
         if kernel_size % 2 == 0:
@@ -121,8 +127,8 @@ class ImageDisplayOutput(BaseOutput):
         """
         hls_image = cv2.cvtColor(image, cv2.COLOR_BGR2HLS)
         h, l, s = cv2.split(hls_image)
-        level = max(0, min(level, 100))
-        scale_factor = (100 - level) / 100.0
+        level = max(0, min(level, self.LEVEL_LIMIT))
+        scale_factor = (self.LEVEL_LIMIT - level) / float(self.LEVEL_LIMIT)
         
         l = cv2.multiply(l, scale_factor)
         l = cv2.min(l, 255).astype(np.uint8)
@@ -135,24 +141,24 @@ class ImageDisplayOutput(BaseOutput):
     def degrade_image(self):
         match self.stage:
             case Stage.BLACK_WHITE:
-                if self.level < 100:
-                    self.level += 5
+                if self.level < self.LEVEL_LIMIT:
+                    self.level += self.level_steps
                     return self._apply_black_white(self.current_image, self.level)
                 else:
                     self.stage = Stage.BLURRY
                     self.level = 0
                     return self.current_image
             case Stage.BLURRY:
-                if self.level < 100:
-                    self.level += 5
+                if self.level < self.LEVEL_LIMIT:
+                    self.level += self.level_steps
                     return self._apply_blur(self.current_image, self.level)
                 else:
                     self.stage = Stage.LIGHTNESS
                     self.level = 0
                     return self.current_image
             case Stage.LIGHTNESS:
-                if self.level < 100:
-                    self.level += 5
+                if self.level < self.LEVEL_LIMIT:
+                    self.level += self.level_steps
                     return self._apply_darkness(self.current_image, self.level)
                 else:
                     return self.current_image
