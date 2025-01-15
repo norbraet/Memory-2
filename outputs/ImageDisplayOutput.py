@@ -177,7 +177,6 @@ class ImageDisplayOutput(BaseOutput):
         """
         Gradually restore the image step by step, reversing the degradation stages.
         """
-        # TODO: Needs to be implemented
         match self.stage:
             case Stage.LIGHTNESS:
                 if self.level > 0:
