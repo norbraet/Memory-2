@@ -12,6 +12,7 @@ class TouchSensor(BaseSensor):
         :param config: Optional configuration parameters.
         :param debug: Enables debug mode for detailed logging.
         """
+        # TODO: MessagingService korrekt einbinden mit outgoing und incoming queues
         super().__init__(service_name, message_queue, config, debug)
         self.device_path = device_path
         self.touch_device = None

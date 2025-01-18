@@ -14,18 +14,18 @@ class Stage(Enum):
 class ImageDisplayOutput(BaseOutput):
     LEVEL_LIMIT = 100
 
-    def __init__(self, service_name, message_queue = None, config = None, debug = False, image_path = "./assets/images/image.png", level_steps = 5, step_intervall_seconds = 0.1):
+    def __init__(self, service_name, outgoing_queue, incoming_queue, config = None, debug = False, image_path = "./assets/images/image.png", level_steps = 5, step_intervall_seconds = 0.1):
         """
         A sensor-like class for displaying images, extending BaseOutput.
         :param service_name: Unique name for the service.
-        :param message_queue: Shared queue for communication.
+        :param outgoing_queue: Shared queue to send messages.
         :param config: Optional configuration dictionary.
         :param debug: Enable debugging logs.
         :param image_path: Path to the initial image.
         :param level_steps: Step interval until the level limit is reached
         :param step_interval_seconds: Time interval between steps, in seconds.
         """
-        super().__init__(service_name, message_queue, config, debug)
+        super().__init__(service_name, outgoing_queue, incoming_queue, config, debug)
         self.window_name = self.service_name
         self.image_path = image_path
         self.original_image = None
@@ -44,7 +44,7 @@ class ImageDisplayOutput(BaseOutput):
         self._logger.info("Setting up ImageDisplayOutput")
         
         pygame.init()
-        self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)  # You can adjust the size as needed
+        self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
         pygame.mouse.set_visible(False)
         pygame.display.set_caption(self.window_name)
         
@@ -57,29 +57,61 @@ class ImageDisplayOutput(BaseOutput):
             self.original_image = self.current_image.copy()
 
     def loop(self):
+        """
+            Aktuell läuft das Bild von 0& auf 100% und wieder zurück bis in die Unendlichkeit.
+            
+            TODO: Wir müssen die restory_image() Funktion von außen triggern triggern indem wir über eine Queue den Befehl zur Restaurierung
+            durchreichen. weiß nicht ob ich dazu die selbe Queue (message_queue) nutzen kann, da diese in der trigger_action() Function mit .get() 
+            der Eintag in der Queue geholt wird. Vielleicht muss ein zweiter Queue erstellt werden und dieser von außen befüllt werden.
+
+            Die Aufgabe die Queue zu befüllen  muss dann die Hauptlogik übernehmen. 
+        """    
         if not self.reverse:
             self._logger.info("Degrading image...")
-            self.current_image = self.degrade_image()
+            self.current_image = self._degrade_image()
+            self.send_message(service_name = self.service_name, data = self.current_image, queue = self.internal_queue, block = False )
+            time.sleep(self.step_intervall_seconds * 2)
         else:
             self._logger.info("Restoring image...")
             self.current_image = self.restore_image()
-        
-        try:
-            self.message_queue.put_nowait(self.current_image)
-        except queue.Full:
-            self._logger.warning("Queue is full, skipping frame")
-        time.sleep(self.step_intervall_seconds)
+            self.send_message(service_name = self.service_name, data = self.current_image, queue = self.internal_queue, block = False )
+            time.sleep(self.step_intervall_seconds)    
+            
 
     def trigger_action(self, data = None):
-        """Display images in a loop. This function works only in the main thread due to the restriction of cv2"""
+        """
+        Display images in a loop. This function works only in the main thread due to the restriction of pygame
+        """
         while not self._stop_event.is_set():
-            if not self.message_queue.empty():
-                current_image = self.message_queue.get()
+            if not self.incoming_queue.qsize() == 0:
+                item = self.receive_message(queue = self.incoming_queue).data
+                self._logger.info(f"Incoming Queue: {item}")
+                
+            if not self.internal_queue.qsize() == 0:
+                current_image = self.receive_message(queue = self.internal_queue).data
+
+
                 image_rgb = cv2.cvtColor(current_image, cv2.COLOR_BGR2RGB)
                 image_rgb = np.transpose(image_rgb, (1, 0, 2))  # Swap width and height dimensions
                 pygame_image = pygame.surfarray.make_surface(image_rgb)
                 self.screen.blit(pygame_image, (0, 0))
                 pygame.display.update()
+                break
+            
+         
+        """ try:
+            item = self.incoming_queue.get_nowait()
+            self._logger.info(f"Incoming Queue: {item}")
+            self.reverse = True
+        except queue.Empty:
+            self.reverse = False
+            current_image = self.receive_message(queue = self.internal_queue).data
+            image_rgb = cv2.cvtColor(current_image, cv2.COLOR_BGR2RGB)
+            image_rgb = np.transpose(image_rgb, (1, 0, 2))  # Swap width and height dimensions
+            pygame_image = pygame.surfarray.make_surface(image_rgb)
+            self.screen.blit(pygame_image, (0, 0)) 
+            pygame.display.update() """
+    
 
     def cleanup(self):
         """
@@ -145,7 +177,7 @@ class ImageDisplayOutput(BaseOutput):
         
         return cv2.cvtColor(hls_image, cv2.COLOR_HLS2BGR)
     
-    def degrade_image(self):
+    def _degrade_image(self):
         match self.stage:
             case Stage.BLACK_WHITE:
                 if self.level < self.LEVEL_LIMIT:
@@ -215,4 +247,3 @@ class ImageDisplayOutput(BaseOutput):
             
     def toggle_reverse(self):
         self.reverse = not self.reverse
-        

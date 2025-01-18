@@ -9,6 +9,7 @@ class UltrasonicSensor(BaseSensor):
                  message_queue = None,
                  debug = False,
                  config: UltrasonicConfig = None):
+        # TODO: MessagingService korrekt einbinden mit outgoing und incoming queues
         config = config or UltrasonicConfig()
         super().__init__(service_name, message_queue, config, debug)
         self.sensor = DistanceSensor(

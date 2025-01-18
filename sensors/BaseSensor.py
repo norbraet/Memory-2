@@ -4,6 +4,7 @@ from utils.ThreadedService import ThreadedService
 
 class BaseSensor(ThreadedService, MessagingService):
     def __init__(self, service_name, message_queue = None, config = None, debug = False):
+        # TODO: MessagingService korrekt einbinden mit outgoing und incoming queues
         ThreadedService.__init__(self, service_name, debug)
         MessagingService.__init__(self, message_queue)
         self.config = config or {}
