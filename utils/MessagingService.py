@@ -2,12 +2,12 @@ from queue import Queue, Empty, Full
 from dataclass.Message import Message
 
 class MessagingService:
-    def __init__(self, outgoing_queue, incoming_queue):
+    def __init__(self):
         """
         Initialize the MessagingService with separate incoming and outgoing queues.
         """
-        self.outgoing_queue = outgoing_queue
-        self.incoming_queue = incoming_queue
+        self.outgoing_queue = Queue()
+        self.incoming_queue = Queue()
         self.internal_queue = Queue()
 
     def send_message(self, service_name, data, metadata = None, queue: Queue = None, block = True, timeout = None):
@@ -19,7 +19,7 @@ class MessagingService:
             message = Message(service = service_name, data = data, metadata = metadata)
             try:
                 if block:
-                    target_queue.put(message, timout = timeout)
+                    target_queue.put(message, timeout = timeout)
                 else:
                     target_queue.put_nowait(message)
             except Full:

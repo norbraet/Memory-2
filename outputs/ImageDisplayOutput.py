@@ -14,18 +14,17 @@ class Stage(Enum):
 class ImageDisplayOutput(BaseOutput):
     LEVEL_LIMIT = 100
 
-    def __init__(self, service_name, outgoing_queue, incoming_queue, config = None, debug = False, image_path = "./assets/images/image.png", level_steps = 5, step_intervall_seconds = 0.1):
+    def __init__(self, service_name, config = None, debug = False, image_path = "./assets/images/image.png", level_steps = 5, step_intervall_seconds = 0.1):
         """
         A sensor-like class for displaying images, extending BaseOutput.
         :param service_name: Unique name for the service.
-        :param outgoing_queue: Shared queue to send messages.
         :param config: Optional configuration dictionary.
         :param debug: Enable debugging logs.
         :param image_path: Path to the initial image.
         :param level_steps: Step interval until the level limit is reached
         :param step_interval_seconds: Time interval between steps, in seconds.
         """
-        super().__init__(service_name, outgoing_queue, incoming_queue, config, debug)
+        super().__init__(service_name, config, debug)
         self.window_name = self.service_name
         self.image_path = image_path
         self.original_image = None
@@ -75,8 +74,7 @@ class ImageDisplayOutput(BaseOutput):
             self._logger.info("Restoring image...")
             self.current_image = self.restore_image()
             self.send_message(service_name = self.service_name, data = self.current_image, queue = self.internal_queue, block = False )
-            time.sleep(self.step_intervall_seconds)    
-            
+            time.sleep(self.step_intervall_seconds)
 
     def trigger_action(self, data = None):
         """
@@ -86,32 +84,16 @@ class ImageDisplayOutput(BaseOutput):
             if not self.incoming_queue.qsize() == 0:
                 item = self.receive_message(queue = self.incoming_queue).data
                 self._logger.info(f"Incoming Queue: {item}")
+                # self.reverse = True
                 
             if not self.internal_queue.qsize() == 0:
+                # self.reverse = False
                 current_image = self.receive_message(queue = self.internal_queue).data
-
-
                 image_rgb = cv2.cvtColor(current_image, cv2.COLOR_BGR2RGB)
                 image_rgb = np.transpose(image_rgb, (1, 0, 2))  # Swap width and height dimensions
                 pygame_image = pygame.surfarray.make_surface(image_rgb)
                 self.screen.blit(pygame_image, (0, 0))
                 pygame.display.update()
-                break
-            
-         
-        """ try:
-            item = self.incoming_queue.get_nowait()
-            self._logger.info(f"Incoming Queue: {item}")
-            self.reverse = True
-        except queue.Empty:
-            self.reverse = False
-            current_image = self.receive_message(queue = self.internal_queue).data
-            image_rgb = cv2.cvtColor(current_image, cv2.COLOR_BGR2RGB)
-            image_rgb = np.transpose(image_rgb, (1, 0, 2))  # Swap width and height dimensions
-            pygame_image = pygame.surfarray.make_surface(image_rgb)
-            self.screen.blit(pygame_image, (0, 0)) 
-            pygame.display.update() """
-    
 
     def cleanup(self):
         """
