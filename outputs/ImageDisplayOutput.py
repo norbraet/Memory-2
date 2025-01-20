@@ -1,3 +1,4 @@
+import queue
 import cv2
 import time
 import pygame
@@ -73,35 +74,13 @@ class ImageDisplayOutput(BaseOutput):
 
     def trigger_action(self, data = None):
         """
-        Display images in a loop. This function works only in the main thread due to the restriction of pygame
+        Display images in a loop. This function works only in the main thread due to the restriction of pygame.
         """
 
         while not self._stop_event.is_set():
-            if not self.incoming_queue.qsize() == 0:
-                data = self.receive_message(queue = self.incoming_queue).data
-                if not self.reverse:
-                    self.restoration = True
-                    self.restoration_duration = data["time"]
-                    self.level_steps = data["strength"]
-                    self.restoration_start_time = time.time()
-                else:
-                    self.restoration_duration += (data["time"] * (1 / self.difficulty))
-                    self.level_steps += (data["strength"] * (1 / self.difficulty))
-
-            if self.restoration and ((time.time() - self.restoration_start_time) < self.restoration_duration):
-                self.reverse = True
-            else:
-                self.restoration = False
-                self.reverse = False
-                self.level_steps = self.level_steps_init
-
-            """ 
-            Diese if muss drin bleiben um das aktuellste Bild anzuzeigen. Unabhängig von der Anweisung ob das Bild verbessert oder degradiert werden muss, muss die internal queue ausgelesen werden 
-            """
-            if not self.internal_queue.qsize() == 0:
-                current_image = self.receive_message(queue = self.internal_queue).data
-                self._display_image(current_image)
-                
+            self._process_incoming_queue()
+            self.reverse = True if self._is_restoration_active() else self._reset_restoration() 
+            self._process_internal_queue()
 
     def cleanup(self):
         """
@@ -242,6 +221,44 @@ class ImageDisplayOutput(BaseOutput):
                     return self.current_image
             case _:
                 return self.current_image
-            
-    def toggle_reverse(self):
-        self.reverse = not self.reverse
+
+    def _process_incoming_queue(self):
+        """
+        Process the incoming queue and update restoration values.
+        """
+        if not self.incoming_queue.qsize() == 0:
+            data = self.receive_message(queue=self.incoming_queue).data
+            self.restoration = True
+            self.restoration_start_time = time.time()
+
+            if not self.reverse:
+                self.restoration_duration = data["time"]
+                self.level_steps = data["strength"]
+            else:
+                self.restoration_duration += data["time"] / self.difficulty
+                self.level_steps += data["strength"] / self.difficulty
+
+    def _process_internal_queue(self):
+        """
+        Process the internal queue and display the current image.
+        """
+        if not self.internal_queue.qsize() == 0:
+            current_image = self.receive_message(queue=self.internal_queue).data
+            self._display_image(current_image)
+
+    def _is_restoration_active(self):
+        """
+        Check if the restoration process is active based on time.
+        """
+        if self.restoration:
+            elapsed_time = time.time() - self.restoration_start_time
+            return elapsed_time < self.restoration_duration
+        return False
+    
+    def _reset_restoration(self):
+        """
+        Reset restoration state.
+        """
+        self.restoration = False
+        self.reverse = False
+        self.level_steps = self.level_steps_init
