@@ -39,6 +39,7 @@ class OutputController(ThreadedService, MessagingService):
                     data = message,
                     queue = self.services[ServicesEnum.ImageDisplayOutput].incoming_queue
                 )
+            time.sleep(0.1)
 
     def cleanup(self):
         self._stop_services(self.services.values())
