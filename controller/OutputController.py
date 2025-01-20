@@ -27,14 +27,25 @@ class OutputController(ThreadedService, MessagingService):
 
 
     def loop(self):
-        time.sleep(10)
+        time.sleep(20)
         self.services[ServicesEnum.ImageDisplayOutput].send_message(
             service_name = self.services[ServicesEnum.ImageDisplayOutput].service_name,
-            data = "Hello",
+            data = {
+                "time": 10,
+                "strength": 10
+            },
             queue = self.services[ServicesEnum.ImageDisplayOutput].incoming_queue
         )
-
-        self._logger.info("TODO: Loop")
+        time.sleep(5)
+        print("Füge jetzt extra hinzu")
+        self.services[ServicesEnum.ImageDisplayOutput].send_message(
+            service_name = self.services[ServicesEnum.ImageDisplayOutput].service_name,
+            data = {
+                "time": 5,
+                "strength": 5
+            },
+            queue = self.services[ServicesEnum.ImageDisplayOutput].incoming_queue
+        )
 
     def cleanup(self):
         self._stop_services(self.services.values())

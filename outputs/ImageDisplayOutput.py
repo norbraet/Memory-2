@@ -1,5 +1,4 @@
 import cv2
-import queue
 import time
 import pygame
 import numpy as np
@@ -33,8 +32,14 @@ class ImageDisplayOutput(BaseOutput):
         self.stage = Stage.BLACK_WHITE
         self.level = 0
         self.level_steps = level_steps
+        self.level_steps_init = level_steps
         self.reverse = False
         self.step_intervall_seconds = step_intervall_seconds
+        self.difficulty = 2
+
+        self.restoration = False
+        self.restoration_duration = 0
+        self.restoration_start_time:float = None
     
     def setup(self):
         """
@@ -55,45 +60,48 @@ class ImageDisplayOutput(BaseOutput):
             self._logger.info("Initial image loaded successfully.")
             self.original_image = self.current_image.copy()
 
-    def loop(self):
-        """
-            Aktuell läuft das Bild von 0& auf 100% und wieder zurück bis in die Unendlichkeit.
-            
-            TODO: Wir müssen die restory_image() Funktion von außen triggern triggern indem wir über eine Queue den Befehl zur Restaurierung
-            durchreichen. weiß nicht ob ich dazu die selbe Queue (message_queue) nutzen kann, da diese in der trigger_action() Function mit .get() 
-            der Eintag in der Queue geholt wird. Vielleicht muss ein zweiter Queue erstellt werden und dieser von außen befüllt werden.
-
-            Die Aufgabe die Queue zu befüllen  muss dann die Hauptlogik übernehmen. 
-        """    
+    def loop(self):  
         if not self.reverse:
-            self._logger.info("Degrading image...")
             self.current_image = self._degrade_image()
             self.send_message(service_name = self.service_name, data = self.current_image, queue = self.internal_queue, block = False )
-            time.sleep(self.step_intervall_seconds * 2)
         else:
-            self._logger.info("Restoring image...")
-            self.current_image = self.restore_image()
+            self.current_image = self._restore_image()
             self.send_message(service_name = self.service_name, data = self.current_image, queue = self.internal_queue, block = False )
-            time.sleep(self.step_intervall_seconds)
+            self._logger.info(f"Past Time: {int(time.time() - self.restoration_start_time)} - Remaining Time: {int(self.restoration_duration - (time.time() - self.restoration_start_time))}")
+        
+        time.sleep(self.step_intervall_seconds)
 
     def trigger_action(self, data = None):
         """
         Display images in a loop. This function works only in the main thread due to the restriction of pygame
         """
+
         while not self._stop_event.is_set():
             if not self.incoming_queue.qsize() == 0:
-                item = self.receive_message(queue = self.incoming_queue).data
-                self._logger.info(f"Incoming Queue: {item}")
-                # self.reverse = True
-                
+                data = self.receive_message(queue = self.incoming_queue).data
+                if not self.reverse:
+                    self.restoration = True
+                    self.restoration_duration = data["time"]
+                    self.level_steps = data["strength"]
+                    self.restoration_start_time = time.time()
+                else:
+                    self.restoration_duration += (data["time"] * (1 / self.difficulty))
+                    self.level_steps += (data["strength"] * (1 / self.difficulty))
+
+            if self.restoration and ((time.time() - self.restoration_start_time) < self.restoration_duration):
+                self.reverse = True
+            else:
+                self.restoration = False
+                self.reverse = False
+                self.level_steps = self.level_steps_init
+
+            """ 
+            Diese if muss drin bleiben um das aktuellste Bild anzuzeigen. Unabhängig von der Anweisung ob das Bild verbessert oder degradiert werden muss, muss die internal queue ausgelesen werden 
+            """
             if not self.internal_queue.qsize() == 0:
-                # self.reverse = False
                 current_image = self.receive_message(queue = self.internal_queue).data
-                image_rgb = cv2.cvtColor(current_image, cv2.COLOR_BGR2RGB)
-                image_rgb = np.transpose(image_rgb, (1, 0, 2))  # Swap width and height dimensions
-                pygame_image = pygame.surfarray.make_surface(image_rgb)
-                self.screen.blit(pygame_image, (0, 0))
-                pygame.display.update()
+                self._display_image(current_image)
+                
 
     def cleanup(self):
         """
@@ -101,6 +109,16 @@ class ImageDisplayOutput(BaseOutput):
         """
         self._logger.info("Cleaning up ImageDisplayOutput")
         pygame.quit()
+
+    def _display_image(self, image):
+        """
+        Utility function to display the current image using Pygame.
+        """
+        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        image_rgb = np.transpose(image_rgb, (1, 0, 2))  # Swap width and height dimensions
+        pygame_image = pygame.surfarray.make_surface(image_rgb)
+        self.screen.blit(pygame_image, (0, 0))
+        pygame.display.update()
     
     def _apply_black_white(self, image, level):
         """
@@ -164,6 +182,7 @@ class ImageDisplayOutput(BaseOutput):
             case Stage.BLACK_WHITE:
                 if self.level < self.LEVEL_LIMIT:
                     self.level += self.level_steps
+                    self._logger.info(f"Degrading - {self.stage} - Level before: {self.level - self.level_steps} Level after: {self.level} - Strenght: {self.level_steps}")
                     return self._apply_black_white(self.current_image, self.level)
                 else:
                     self.stage = Stage.BLURRY
@@ -172,6 +191,7 @@ class ImageDisplayOutput(BaseOutput):
             case Stage.BLURRY:
                 if self.level < self.LEVEL_LIMIT:
                     self.level += self.level_steps
+                    self._logger.info(f"Degrading - {self.stage} - Level before: {self.level - self.level_steps} Level after: {self.level} - Strenght: {self.level_steps}")
                     return self._apply_blur(self.current_image, self.level)
                 else:
                     self.stage = Stage.LIGHTNESS
@@ -180,23 +200,22 @@ class ImageDisplayOutput(BaseOutput):
             case Stage.LIGHTNESS:
                 if self.level < self.LEVEL_LIMIT:
                     self.level += self.level_steps
+                    self._logger.info(f"Degrading - {self.stage} - Level before: {self.level - self.level_steps} Level after: {self.level} - Strenght: {self.level_steps}")
                     return self._apply_darkness(self.current_image, self.level)
                 else:
-                    self.toggle_reverse() # Muss später raus genommen werden
                     return self.current_image
             case _:
                 return self.current_image
 
-    def restore_image(self):
+    def _restore_image(self):
         """
         Gradually restore the image step by step, reversing the degradation stages.
         """
         match self.stage:
             case Stage.LIGHTNESS:
                 if self.level > 0:
-                    self._logger.info(f"Restauration - Stage: {self.stage} - Level before: {self.level}")
                     self.level -= self.level_steps
-                    self._logger.info(f"Restauration - Stage: {self.stage} - Level after: {self.level}")
+                    self._logger.info(f"Restoring - {self.stage} - Level before: {self.level + self.level_steps} Level after: {self.level} - Strenght: {self.level_steps}")
                     temp_image = self._apply_black_white(self.original_image, self.LEVEL_LIMIT)
                     temp_image = self._apply_blur(temp_image, self.LEVEL_LIMIT)
                     return self._apply_darkness(temp_image, self.level)
@@ -206,9 +225,8 @@ class ImageDisplayOutput(BaseOutput):
                     return self.current_image
             case Stage.BLURRY:
                 if self.level > 0:
-                    self._logger.info(f"Blurry - Stage: {self.stage} - Level before: {self.level}")
                     self.level -= self.level_steps
-                    self._logger.info(f"Restauration - Stage: {self.stage} - Level after: {self.level}")
+                    self._logger.info(f"Restoring - {self.stage} - Level before: {self.level + self.level_steps} Level after: {self.level} - Strenght: {self.level_steps}")
                     temp_image = self._apply_black_white(self.original_image, self.LEVEL_LIMIT)
                     return self._apply_blur(temp_image, self.level)
                 else:
@@ -217,12 +235,10 @@ class ImageDisplayOutput(BaseOutput):
                     return self.current_image
             case Stage.BLACK_WHITE:
                 if self.level > 0:
-                    self._logger.info(f"BLACK_WHITE - Stage: {self.stage} - Level before: {self.level}")
                     self.level -= self.level_steps
-                    self._logger.info(f"Restauration - Stage: {self.stage} - Level after: {self.level}")
+                    self._logger.info(f"Restoring - {self.stage} - Level before: {self.level + self.level_steps} Level after: {self.level} - Strenght: {self.level_steps}")
                     return self._apply_black_white(self.original_image, self.level)
                 else:
-                    self.toggle_reverse() # Muss später raus genommen werden
                     return self.current_image
             case _:
                 return self.current_image

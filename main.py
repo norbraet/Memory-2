@@ -11,8 +11,7 @@ def main():
 
     try:
         logic.start()
-        logic.services[ServicesEnum.ImageDisplayOutput].trigger_action()
-        # logic.start_gui()
+        logic.start_gui()
 
 
         """
