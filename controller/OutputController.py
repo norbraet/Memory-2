@@ -17,35 +17,28 @@ class OutputController(ThreadedService, MessagingService):
 
     def setup(self):
         self.services = {
-            # Services.FaceRecognition: FaceRecognition(service_name = Services.FaceRecognition.value, message_queue = sensor_message_queue, debug = False),
-            # Services.UltrasonicSensor: UltrasonicSensor(service_name = Services.UltrasonicSensor.value, message_queue = sensor_message_queue, debug = False),
-            # Services.TouchSensor: TouchSensor(service_name = Services.TouchSensor.value, message_queue = touch_message_queue, debug = False),
-            ServicesEnum.ImageDisplayOutput: ImageDisplayOutput(service_name = ServicesEnum.ImageDisplayOutput.value)
+            # ServicesEnum.FaceRecognition: FaceRecognition(service_name = ServicesEnum.FaceRecognition.value, debug = False),
+            ServicesEnum.UltrasonicSensor: UltrasonicSensor(service_name = ServicesEnum.UltrasonicSensor.value, debug = False),
+            # ServicesEnum.TouchSensor: TouchSensor(service_name = ServicesEnum.TouchSensor.value, debug = False),
+            ServicesEnum.ImageDisplayOutput: ImageDisplayOutput(service_name = ServicesEnum.ImageDisplayOutput.value, debug = False)
         }
         self._initialize_services(self.services.values())
         self._logger.info("All services started")
 
 
     def loop(self):
-        time.sleep(20)
-        self.services[ServicesEnum.ImageDisplayOutput].send_message(
-            service_name = self.services[ServicesEnum.ImageDisplayOutput].service_name,
-            data = {
-                "time": 10,
-                "strength": 10
-            },
-            queue = self.services[ServicesEnum.ImageDisplayOutput].incoming_queue
-        )
-        time.sleep(5)
-        print("Füge jetzt extra hinzu")
-        self.services[ServicesEnum.ImageDisplayOutput].send_message(
-            service_name = self.services[ServicesEnum.ImageDisplayOutput].service_name,
-            data = {
-                "time": 5,
-                "strength": 5
-            },
-            queue = self.services[ServicesEnum.ImageDisplayOutput].incoming_queue
-        )
+        """
+        Continuously check the outgoing queues of all services and delegate messages to the ImageDisplayOutput.
+        """
+        for service_enum, service in self.services.items():
+            if hasattr(service, "outgoing_queue") and not service.outgoing_queue.empty():
+                message = service.receive_message(queue=service.outgoing_queue).data
+                self._logger.info(f"Received message from {service_enum}: {message}")
+                self.services[ServicesEnum.ImageDisplayOutput].send_message(
+                    service_name = self.services[ServicesEnum.ImageDisplayOutput].service_name,
+                    data = message,
+                    queue = self.services[ServicesEnum.ImageDisplayOutput].incoming_queue
+                )
 
     def cleanup(self):
         self._stop_services(self.services.values())

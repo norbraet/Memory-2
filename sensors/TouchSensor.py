@@ -2,18 +2,16 @@ from evdev import InputDevice, ecodes
 from sensors.BaseSensor import BaseSensor
 
 class TouchSensor(BaseSensor):
-    def __init__(self, service_name, device_path='/dev/input/event7', message_queue=None, config=None, debug=False):
+    def __init__(self, service_name, device_path='/dev/input/event7', config=None, debug=False):
         """
         A sensor for handling touch input events.
 
         :param service_name: Name of the service.
         :param device_path: Path to the touch input device (e.g., /dev/input/eventX).
-        :param message_queue: Queue for inter-service communication.
         :param config: Optional configuration parameters.
         :param debug: Enables debug mode for detailed logging.
         """
-        # TODO: MessagingService korrekt einbinden mit outgoing und incoming queues
-        super().__init__(service_name, message_queue, config, debug)
+        super().__init__(service_name, config, debug)
         self.device_path = device_path
         self.touch_device = None
 

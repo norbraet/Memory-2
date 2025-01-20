@@ -11,11 +11,9 @@ class FaceRecognition(BaseSensor):
                  cascade_path = "config/haarcascade_frontalface_default.xml",
                  debug_output_dir = "logs/detected_faces",
                  debug = False,
-                 message_queue = None,
                  config: FaceRecognitionConfig = None):
-        # TODO: MessagingService korrekt einbinden mit outgoing und incoming queues
         config = config or FaceRecognitionConfig()
-        super().__init__(service_name = service_name, message_queue = message_queue, config = config, debug = debug)
+        super().__init__(service_name = service_name, config = config, debug = debug)
         self.debug_output_dir = debug_output_dir
         self.cascade_path = cascade_path 
         
