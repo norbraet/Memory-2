@@ -136,25 +136,26 @@ class ImageDisplayOutput(BaseOutput):
         self._logger.debug(f"Applied blur filter with level {level}%")
 
         return cv2.GaussianBlur(image, (kernel_size, kernel_size), 0)
-
+    
     def _apply_darkness(self, image, level):
         """
         Gradually apply brightness change, or reduce brightness.
         :param image: The image to adjust brightness.
-        :param level: The current brightness level (0 to 10).
+        :param level: The current brightness level (0 to LEVEL_LIMIT).
         """
         hls_image = cv2.cvtColor(image, cv2.COLOR_BGR2HLS)
-        h, l, s = cv2.split(hls_image)
+        h, l, s = cv2.split(hls_image) 
         level = max(0, min(level, self.LEVEL_LIMIT))
-        scale_factor = (self.LEVEL_LIMIT - level) / float(self.LEVEL_LIMIT)
+        scale_factor = 1.0 - (level / float(self.LEVEL_LIMIT)) ** 1.5  # Exponential scaling
         
-        l = cv2.multiply(l, scale_factor)
-        l = cv2.min(l, 255).astype(np.uint8)
+        l = cv2.multiply(l.astype(np.float32), scale_factor)
+        l = np.clip(l, 0, 255).astype(np.uint8)
         
         hls_image = cv2.merge([h, l, s])
-        self._logger.debug(f"Applied darkness filter with level {level}%")
+        self._logger.debug(f"Applied darkness filter with level {level}%, scale factor {scale_factor:.2f}")
         
         return cv2.cvtColor(hls_image, cv2.COLOR_HLS2BGR)
+
     
     def _degrade_image(self):
         match self.stage:
