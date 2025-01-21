@@ -56,7 +56,7 @@ class OutputController():
             queue_thread = QueueListenerThread(
                 service=service,
                 target_output=self.services[ServicesEnum.ImageDisplayOutput].incoming_queue,
-                debug=True
+                debug=self.debug
             )
             self.queue_threads.append(queue_thread)
             queue_thread.start()
