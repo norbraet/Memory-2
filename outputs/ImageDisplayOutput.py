@@ -41,6 +41,9 @@ class ImageDisplayOutput(BaseOutput):
         self.restoration = False
         self.restoration_duration = 0
         self.restoration_start_time:float = None
+
+        self.cache_image_black_white = None
+        self.cache_image_black_white_blurry = None
     
     def setup(self):
         """
@@ -167,6 +170,7 @@ class ImageDisplayOutput(BaseOutput):
                 else:
                     self.stage = Stage.BLURRY
                     self.level = 0
+                    self.cache_image_black_white = self.current_image.copy()
                     return self.current_image
             case Stage.BLURRY:
                 if self.level < self.LEVEL_LIMIT:
@@ -176,6 +180,7 @@ class ImageDisplayOutput(BaseOutput):
                 else:
                     self.stage = Stage.LIGHTNESS
                     self.level = 0
+                    self.cache_image_black_white_blurry = self.current_image.copy()
                     return self.current_image
             case Stage.LIGHTNESS:
                 if self.level < self.LEVEL_LIMIT:
@@ -196,9 +201,9 @@ class ImageDisplayOutput(BaseOutput):
                 if self.level > 0:
                     self.level -= self.level_steps
                     self._logger.debug(f"Restoring - {self.stage} - Level before: {self.level + self.level_steps} Level after: {self.level} - Strenght: {self.level_steps}")
-                    temp_image = self._apply_black_white(self.original_image, self.LEVEL_LIMIT)
-                    temp_image = self._apply_blur(temp_image, self.LEVEL_LIMIT)
-                    return self._apply_darkness(temp_image, self.level)
+                    # temp_image = self._apply_black_white(self.original_image, self.LEVEL_LIMIT)
+                    # temp_image = self._apply_blur(temp_image, self.LEVEL_LIMIT)
+                    return self._apply_darkness(self.cache_image_black_white_blurry, self.level)
                 else:
                     self.stage = Stage.BLURRY
                     self.level = self.LEVEL_LIMIT
@@ -207,8 +212,8 @@ class ImageDisplayOutput(BaseOutput):
                 if self.level > 0:
                     self.level -= self.level_steps
                     self._logger.debug(f"Restoring - {self.stage} - Level before: {self.level + self.level_steps} Level after: {self.level} - Strenght: {self.level_steps}")
-                    temp_image = self._apply_black_white(self.original_image, self.LEVEL_LIMIT)
-                    return self._apply_blur(temp_image, self.level)
+                    # temp_image = self._apply_black_white(self.original_image, self.LEVEL_LIMIT)
+                    return self._apply_blur(self.cache_image_black_white, self.level)
                 else:
                     self.stage = Stage.BLACK_WHITE
                     self.level = self.LEVEL_LIMIT

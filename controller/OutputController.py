@@ -30,7 +30,23 @@ class OutputController(ThreadedService, MessagingService):
         """
         Continuously check the outgoing queues of all services and delegate messages to the ImageDisplayOutput.
         """
-        for service_enum, service in self.services.items():
+
+        
+        """
+        Idee: Jede Service-Queue bekommt einen eigenen Thread damit die Performance besser ist. In diesem Thread wird mit einem blockierendem aufruf auf die Queue gewartet bis was reinkommt. 
+        
+        """
+        message = self.services[ServicesEnum.UltrasonicSensor].receive_message(queue=self.services[ServicesEnum.UltrasonicSensor].outgoing_queue, timeout = None).data
+        self._logger.info(f"Received message: {message}")
+        self.services[ServicesEnum.ImageDisplayOutput].send_message(
+            service_name = self.services[ServicesEnum.ImageDisplayOutput].service_name,
+            data = message,
+            queue = self.services[ServicesEnum.ImageDisplayOutput].incoming_queue
+        )
+
+
+
+        """ for service_enum, service in self.services.items():
             if hasattr(service, "outgoing_queue") and not service.outgoing_queue.empty():
                 message = service.receive_message(queue=service.outgoing_queue).data
                 self._logger.info(f"Received message from {service_enum}: {message}")
@@ -39,7 +55,7 @@ class OutputController(ThreadedService, MessagingService):
                     data = message,
                     queue = self.services[ServicesEnum.ImageDisplayOutput].incoming_queue
                 )
-            time.sleep(0.1)
+            time.sleep(0.1) """
 
     def cleanup(self):
         self._stop_services(self.services.values())
