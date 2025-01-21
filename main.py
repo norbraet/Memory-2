@@ -7,12 +7,10 @@ from dataclass.ServicesEnum import ServicesEnum
 def main():
     logging.basicConfig(level=logging.INFO, format="%(levelname)-8s :: %(name)-22s :: %(message)s")
     
-    logic = OutputController("Logic")
+    logic = OutputController(service_name="Logic", debug=False)
 
     try:
         logic.start()
-        logic.start_gui()
-
 
         """
         Der Grund warum der nicht in die while Schleife reingeht, ist weil die .trigger_action() selbst eine while True schleife ist und der Code nie an den unteren Punkt kommt.
