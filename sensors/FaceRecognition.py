@@ -14,6 +14,7 @@ class FaceRecognition(BaseSensor):
                  config: FaceRecognitionConfig = None):
         config = config or FaceRecognitionConfig()
         super().__init__(service_name = service_name, config = config, debug = debug)
+        self.config = config
         self.debug_output_dir = debug_output_dir
         self.cascade_path = cascade_path 
         
@@ -96,7 +97,12 @@ class FaceRecognition(BaseSensor):
         }
 
         if len(detected_faces) > 0:
-            if self.debug:
-                self._logger.debug(f"Face: {detected_faces}")
+            self._logger.info(f"Face detected: {detected_faces}")
+
             self.send_message(service_name = self.service_name,
-                              data = {"faces": detected_faces})
+                                data = {
+                                    "time": self.config.restoration_duration,
+                                    "level_steps": self.config.level_steps
+                                },
+                                queue=self.outgoing_queue)
+            time.sleep(self.config.restoration_duration)
