@@ -30,9 +30,9 @@ class UltrasonicSensor(BaseSensor):
             
             if distance is not None:
                 distance_cm = int(distance * 100)
-                logger.debug(f"{distance_cm} cm")
 
                 if distance_cm < self.config.threshold: 
+                    logger.debug(f"Distance: {distance_cm} cm | Strength: {self.config.level_steps} | Duration: {self.config.restoration_duration}")
                     scale_factor = self.config.threshold / distance_cm
                     message = self.config.level_steps * scale_factor
                     self.send_message(service_name = self.service_name,
