@@ -1,9 +1,12 @@
 import cv2
 import os
 import time
+import logging
 from picamera2 import Picamera2
 from sensors.BaseSensor import BaseSensor
 from dataclass.FaceRecognitionConfig import FaceRecognitionConfig
+
+logger = logging.getLogger(__name__)
 
 class FaceRecognition(BaseSensor):
     def __init__(self,
@@ -11,10 +14,11 @@ class FaceRecognition(BaseSensor):
                  cascade_path = "config/haarcascade_frontalface_default.xml",
                  debug_output_dir = "logs/detected_faces",
                  debug = False,
-                 message_queue = None,
                  config: FaceRecognitionConfig = None):
         config = config or FaceRecognitionConfig()
-        super().__init__(service_name = service_name, message_queue = message_queue, config = config, debug = debug)
+        super().__init__(service_name = service_name, config = config, debug = debug)
+        logger.setLevel(logging.DEBUG if debug else logging.INFO)
+        self.config = config
         self.debug_output_dir = debug_output_dir
         self.cascade_path = cascade_path 
         
@@ -33,7 +37,7 @@ class FaceRecognition(BaseSensor):
         )
         self.camera.start()
         self.face_detector = cv2.CascadeClassifier(self.cascade_path)
-        self._logger.info("Camera and face detector initialized")
+        logger.info("Camera and face detector initialized")
 
     def loop(self):
         frame = self.camera.capture_array()
@@ -46,7 +50,7 @@ class FaceRecognition(BaseSensor):
     def cleanup(self):
         if self.camera:
             self.camera.stop()
-            self._logger.info("Camera stopped and resources released")
+            logger.info("Camera stopped and resources released")
 
     def _update_face_tracks(self, frame):
         small_frame = cv2.resize(frame, (0, 0), fx=self.config.downscale_factor, fy=self.config.downscale_factor)
@@ -97,7 +101,12 @@ class FaceRecognition(BaseSensor):
         }
 
         if len(detected_faces) > 0:
-            if self.debug:
-                self._logger.debug(f"Face: {detected_faces}")
+            logger.info(f"Face detected: {detected_faces}")
+
             self.send_message(service_name = self.service_name,
-                              data = {"faces": detected_faces})
+                                data = {
+                                    "time": self.config.restoration_duration,
+                                    "level_steps": self.config.level_steps
+                                },
+                                queue=self.outgoing_queue)
+            time.sleep(self.config.restoration_duration)
