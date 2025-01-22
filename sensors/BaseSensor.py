@@ -7,6 +7,7 @@ class BaseSensor(ThreadedService, MessagingService):
         ThreadedService.__init__(self, service_name, debug)
         MessagingService.__init__(self)
         self.config = config or {}
+        self.debug = debug
 
     @abstractmethod
     def setup(self):

@@ -1,4 +1,5 @@
 import logging
+import time
 from utils.ThreadedService import ThreadedService
 from sensors.BaseSensor import BaseSensor
 from outputs.BaseOutput import BaseOutput
@@ -20,7 +21,7 @@ class QueueListenerThread(ThreadedService):
 
     def loop(self):
         try:
-            message = self.service.receive_message(queue= self.service.outgoing_queue, block=True, timeout=10)
+            message = self.service.receive_message(queue= self.service.outgoing_queue, block=True, timeout=30)
             if message:
                 logger.debug(f"Received message from {message.service}: {message.data}")
                 self.service.send_message(
@@ -35,6 +36,7 @@ class QueueListenerThread(ThreadedService):
                 if self.config.restoration_duration < self.config.restoration_duration_max:
                     logger.debug(f"I will increase restoration time ({self.config.restoration_duration}) by {self.config.restoration_duration_interval}")
                     self.config.restoration_duration += self.config.restoration_duration_interval
+                time.sleep(self.config.restoration_duration * 0.9)
 
         except Empty:
             logger.debug(f"No message received within timeout.")

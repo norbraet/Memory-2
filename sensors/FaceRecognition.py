@@ -14,15 +14,21 @@ class FaceRecognition(BaseSensor):
                  cascade_path = "config/haarcascade_frontalface_default.xml",
                  debug_output_dir = "logs/detected_faces",
                  debug = False,
-                 config: FaceRecognitionConfig = None):
+                 config: FaceRecognitionConfig = None,
+                 show_camera = False):
         config = config or FaceRecognitionConfig()
         super().__init__(service_name = service_name, config = config, debug = debug)
         logger.setLevel(logging.DEBUG if debug else logging.INFO)
         self.config = config
         self.debug_output_dir = debug_output_dir
         self.cascade_path = cascade_path 
+        self.show_camera = show_camera
         
     def setup(self):
+        # Suppress Picamera2 logs
+        picamera_logger = logging.getLogger("picamera2")
+        picamera_logger.setLevel(logging.WARNING)
+
         self.face_tracks = {}
         self.track_id = 0
         self.frame_count_to_forget = 30
@@ -43,7 +49,7 @@ class FaceRecognition(BaseSensor):
         frame = self.camera.capture_array()
 
         self._update_face_tracks(frame)
-        if self.debug:
+        if self.show_camera:
             cv2.imshow("Camera", cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
             cv2.waitKey(3)
 
@@ -82,12 +88,12 @@ class FaceRecognition(BaseSensor):
                 matched_id = self.track_id
                 self.track_id += 1
 
-                if self.debug:
+                if self.show_camera:
                     timestamp = int(time.time())
                     filename = os.path.join(self.debug_output_dir, f"face_{matched_id}_{timestamp}.jpg")
                     cv2.imwrite(filename, frame[y:y + h, x:x + w])
             
-            if self.debug:
+            if self.show_camera:
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
                 cv2.putText(frame, f"ID {matched_id}", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
 
@@ -106,7 +112,7 @@ class FaceRecognition(BaseSensor):
             self.send_message(service_name = self.service_name,
                                 data = {
                                     "time": self.config.restoration_duration,
-                                    "level_steps": self.config.level_steps
+                                    "level_steps": self.config.level_steps,
                                 },
                                 queue=self.outgoing_queue)
-            time.sleep(self.config.restoration_duration)
+            time.sleep(self.config.restoration_duration * 0.9)

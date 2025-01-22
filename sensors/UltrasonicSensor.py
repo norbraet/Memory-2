@@ -41,7 +41,7 @@ class UltrasonicSensor(BaseSensor):
                                             "level_steps": message
                                         },
                                         queue=self.outgoing_queue)
-                    time.sleep(self.config.restoration_duration)
+                    time.sleep(self.config.restoration_duration * 0.9)
             time.sleep(self.config.loop_refresh_rate)
             
         except Exception as e:
