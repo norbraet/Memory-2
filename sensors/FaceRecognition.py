@@ -107,7 +107,7 @@ class FaceRecognition(BaseSensor):
         }
 
         if len(detected_faces) > 0:
-            logger.info(f"Face detected: {detected_faces}")
+            logger.debug(f"Face detected: {detected_faces}")
 
             self.send_message(service_name = self.service_name,
                                 data = {

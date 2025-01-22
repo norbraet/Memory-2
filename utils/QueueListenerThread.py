@@ -30,11 +30,11 @@ class QueueListenerThread(ThreadedService):
                     queue=self.target_output
                 )
                 if self.config.level_steps < self.config.level_steps_max:
-                    logger.debug(f"I will increase restoration strength ({self.config.level_steps}) by {self.config.level_steps_interval}")
+                    logger.debug(f"{self.service.service_name} | I will increase restoration strength ({self.config.level_steps}) by {self.config.level_steps_interval}")
                     self.config.level_steps += self.config.level_steps_interval
 
                 if self.config.restoration_duration < self.config.restoration_duration_max:
-                    logger.debug(f"I will increase restoration time ({self.config.restoration_duration}) by {self.config.restoration_duration_interval}")
+                    logger.debug(f"{self.service.service_name} | I will increase restoration time ({self.config.restoration_duration}) by {self.config.restoration_duration_interval}")
                     self.config.restoration_duration += self.config.restoration_duration_interval
                 time.sleep(self.config.restoration_duration * 0.9)
 
@@ -42,11 +42,11 @@ class QueueListenerThread(ThreadedService):
             logger.debug(f"No message received within timeout.")
     
             if self.config.level_steps > self.config.level_steps_min:
-                logger.debug(f"I will decrease strength ({self.config.level_steps}) by {self.config.level_steps_interval}")
+                logger.debug(f"{self.service.service_name} | I will decrease strength ({self.config.level_steps}) by {self.config.level_steps_interval}")
                 self.config.level_steps -= self.config.level_steps_interval
             
             if self.config.restoration_duration > self.config.restoration_duration_min:
-                logger.debug(f"I will decrease restoration time ({self.config.restoration_duration}) by {self.config.restoration_duration_interval}")
+                logger.debug(f"{self.service.service_name} | I will decrease restoration time ({self.config.restoration_duration}) by {self.config.restoration_duration_interval}")
                 self.config.restoration_duration -= self.config.restoration_duration_interval
 
         except Exception as e:
