@@ -20,12 +20,6 @@ class QueueListenerThread(ThreadedService):
 
     def loop(self):
         try:
-            """
-            TODO: Aktuell haben wir mit timeout=None eine unendlich lange Wartezeit. Man könnte sagen, nach dem Zeit x vergangen ist, dass der Sensor bockig wird und die Werte der 
-            config ändert. da die Config eine @dataclass sind, können die Werte im Nachhinein geändert werden. Auf der anderen Seite wenn viel Interaktion mit einem Sensor passiert, so kann
-            der Wert auch sich steigern. Dazu müsste ich bei jeder Interaktion den Wert erhöhen.
-            """
-            
             message = self.service.receive_message(queue= self.service.outgoing_queue, block=True, timeout=10)
             if message:
                 logger.debug(f"Received message from {message.service}: {message.data}")
@@ -49,7 +43,7 @@ class QueueListenerThread(ThreadedService):
                 logger.debug(f"I will decrease strength ({self.config.level_steps}) by {self.config.level_steps_interval}")
                 self.config.level_steps -= self.config.level_steps_interval
             
-            if self.config.restoration_duration > self.config.restoration_duration_max:
+            if self.config.restoration_duration > self.config.restoration_duration_min:
                 logger.debug(f"I will decrease restoration time ({self.config.restoration_duration}) by {self.config.restoration_duration_interval}")
                 self.config.restoration_duration -= self.config.restoration_duration_interval
 
