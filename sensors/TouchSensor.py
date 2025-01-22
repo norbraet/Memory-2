@@ -60,32 +60,45 @@ class TouchSensor(BaseSensor):
         try:
             for event in self.touch_device.read_loop():
                 if event.type == ecodes.EV_ABS:
+                    """ self.send_message(
+                        service_name = self.service_name,
+                        data = {
+                            "amount": 0.01,
+                        },
+                        queue=self.outgoing_queue,
+                        metadata = {
+                            "type": "swipe"
+                        }
+                    ) """
+
+                    """ 
+                    TODO: Die idee ist das wir nicht jeden einzelnen swipe als event schicken sondern nur zwei: einmal "Touch down" und "Touch Up". Beim
+                    Touch Down soll sich der Overlay anfangen abzubauen und sobald Touch Up kommt wird dieser Prozess angehalten
+                    """
+                        
                     if event.code == ecodes.ABS_X:
-                        logger.debug(f"X Position: {event.value}")
-                        self.send_message(service_name = self.service_name,
-                                        data = {
-                                            "time": self.config.restoration_duration,
-                                            "level_steps": self.config.level_steps
-                                        },
-                                        queue=self.outgoing_queue)
-                        
-                        
+                        #logger.debug(f"X Position: {event.value}")
+                        # TODO: Hier muss eine Message gesendet werden, die dazu dient die overlay opacity zu regulieren
+                        pass
                     elif event.code == ecodes.ABS_Y:
-                        logger.debug(f"Y Position: {event.value}")
-                        self.send_message(service_name = self.service_name,
-                                        data = {
-                                            "time": self.config.restoration_duration,
-                                            "level_steps": self.config.level_steps
-                                        },
-                                        queue=self.outgoing_queue)
+                        # logger.debug(f"Y Position: {event.value}")
+                        # TODO: Hier muss eine Message gesendet werden, die dazu dient die overlay opacity zu regulieren
+                        pass
                         
                 elif event.type == ecodes.EV_KEY and event.code == ecodes.BTN_TOUCH:
                     if event.value == 1:
                         logger.debug("Touch down")
+                        self.send_message(service_name = self.service_name,
+                                        data = {
+                                            "time": self.config.restoration_duration,
+                                            "level_steps": self.config.level_steps
+                                        },
+                                        queue=self.outgoing_queue)
                         
                     elif event.value == 0:
-                        logger.debug("Touch up")
-                        
+                        # logger.debug("Touch up")
+                        pass
+                         
         except Exception as e:
             logger.error(f"Error in touch sensor loop: {e}")
             self.stop()

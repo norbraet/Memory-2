@@ -7,7 +7,8 @@ class TouchConfig(BaseConfig):
     level_steps_max: int = 100
     level_steps_min: int = 100
     level_steps_interval = 0
-    restoration_duration: int = 24
-    restoration_duration_max: int = 30
-    restoration_duration_min: int = 20
-    restoration_duration_interval: int = 2
+    restoration_duration: int = 1
+    restoration_duration_max: int = 1
+    restoration_duration_min: int = 1
+    restoration_duration_interval: int = 1
+    sleep: bool = False

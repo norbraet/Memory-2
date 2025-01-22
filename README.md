@@ -1,17 +1,19 @@
 # Memory-2
 
-## TODO
+## TouchSensor
 
-- LEDService umschreiben in ein LedOutput.py (Klassen name sollte auf jeden Fall nicht ---Sensor sein)
-- Main.py erweitern mit der eigentlichen Logik
-    - Auswerten von den Sensor Daten
-    - Ansprechen der Output Devices wie LED und Bildschirm
-- Bild Output Klasse erstellen, um das Bild anzuzeigen über OpenCV
-- Bild Logik implementieren
-    - Schwar Weiß Filter
-    - Helligkeit
-    - Gaussian Blur o.ä.
-    - Die Filter sollten über eine Funktion ansprechbar sein
-    - Jeder Filtertyp hat Bedingungen
-        - Bspw. Helligkeit filter darf nicht angewendet werden, wenn es noch nicht ganz blurry ist
-    
+- TouchSensor wieder zum Laufen bekommen
+- TouchSensor Daten müssen an das Image übermittelt werden
+- TouchSensor stellt eine sofortige wiederherstellung her
+- TouchSensorConfig muss erstellt werden
+ 
+## ImageDisplayOutput 
+- Dust-Overlay erstellen und unter <code>assets/</code> ablegen
+- Dust Opacity regulieren durch den Touch
+- Ein Touch Event stellt das Bild sofort wieder her, wischt aber den Staub nicht sofort weg
+
+
+## LedOutput
+- LedOutput erstellen 
+- LedOutput logik schreiben und auf Sensor Messages reagieren
+- Messages versenden an LedOutput

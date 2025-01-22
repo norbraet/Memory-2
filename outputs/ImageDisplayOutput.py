@@ -5,13 +5,14 @@ import pygame
 import numpy as np
 from outputs.BaseOutput import BaseOutput
 from enums.StageEnum import Stage
+from enums.ServicesEnum import ServicesEnum
 
 logger = logging.getLogger(__name__)
 
 class ImageDisplayOutput(BaseOutput):
     LEVEL_LIMIT = 100
 
-    def __init__(self, service_name, config = None, debug = False, image_path = "./assets/images/image.png", level_steps = 5, step_intervall_seconds = 0.1):
+    def __init__(self, service_name, config = None, debug = False, image_path = "./assets/images/image.png", level_steps = 1, step_intervall_seconds = 0.1):
         """
         A sensor-like class for displaying images, extending BaseOutput.
         :param service_name: Unique name for the service.
@@ -231,14 +232,21 @@ class ImageDisplayOutput(BaseOutput):
         Process the incoming queue and update restoration values.
         """
         if not self.incoming_queue.qsize() == 0:
-            data = self.receive_message(queue=self.incoming_queue).data
+            message = self.receive_message(queue=self.incoming_queue)
+            data = message.data
             self.restoration = True
             self.restoration_start_time = time.time()
-
-            if not self.reverse:
+            
+            """ if message.service == ServicesEnum.TouchSensor.value and message.metadata and message.metadata.get("type"):
+                # TODO: Hier muss dann die opacity vom overlay angepasst werden
+                print(message.metadata["type"])
+                return
+            """
+            
+            if not self.reverse and data.get("time") and data.get("level_steps"): 
                 self.restoration_duration = data["time"]
                 self.level_steps = data["level_steps"]
-            else:
+            elif data.get("time") and data.get("level_steps"):
                 self.restoration_duration += data["time"] / self.difficulty
                 self.level_steps += data["level_steps"] / self.difficulty
 

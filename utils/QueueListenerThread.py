@@ -36,6 +36,9 @@ class QueueListenerThread(ThreadedService):
                 if self.config.restoration_duration < self.config.restoration_duration_max:
                     logger.debug(f"{self.service.service_name} | I will increase restoration time ({self.config.restoration_duration}) by {self.config.restoration_duration_interval}")
                     self.config.restoration_duration += self.config.restoration_duration_interval
+                
+                if hasattr(self.config, "sleep") and not self.config.sleep:
+                    return
                 time.sleep(self.config.restoration_duration * 0.9)
 
         except Empty:
