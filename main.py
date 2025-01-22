@@ -1,9 +1,33 @@
 import logging
+import colorlog
 from controller.OutputController import OutputController
 from enums.ServicesEnum import ServicesEnum
 
+logger = logging.getLogger(__name__)
+
+def setup_logging():
+    color_formatter = colorlog.ColoredFormatter(
+        "%(log_color)s%(levelname)-8s | %(name)-26s | %(message)s",
+        log_colors={
+            "DEBUG": "white",
+            "INFO": "green",
+            "WARNING": "yellow",
+            "ERROR": "red",
+            "CRITICAL": "bold_red",
+        },
+    )
+
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(color_formatter)
+    console_handler.setLevel(logging.DEBUG)
+
+    logging.basicConfig(
+        level=logging.DEBUG,
+        handlers=[console_handler],
+    )
+
 def main():
-    logging.basicConfig(level=logging.INFO, format="%(levelname)-8s :: %(name)-22s :: %(message)s")
+    setup_logging()
     
     logic = OutputController(service_name="Logic", debug=False)
 

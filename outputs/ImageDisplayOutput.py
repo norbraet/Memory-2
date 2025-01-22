@@ -1,11 +1,12 @@
-import queue
 import cv2
 import time
+import logging
 import pygame
 import numpy as np
 from outputs.BaseOutput import BaseOutput
 from enums.StageEnum import Stage
 
+logger = logging.getLogger(__name__)
 
 class ImageDisplayOutput(BaseOutput):
     LEVEL_LIMIT = 100
@@ -21,6 +22,7 @@ class ImageDisplayOutput(BaseOutput):
         :param step_interval_seconds: Time interval between steps, in seconds.
         """
         super().__init__(service_name, config, debug)
+        logger.setLevel(logging.DEBUG if debug else logging.INFO)
         self.window_name = self.service_name
         self.image_path = image_path
         self.original_image = None
@@ -45,7 +47,7 @@ class ImageDisplayOutput(BaseOutput):
         """
         Perform setup tasks, like loading the initial image and setting up the display window.
         """
-        self._logger.info("Setting up ImageDisplayOutput")
+        logger.info("Setting up ImageDisplayOutput")
         
         pygame.init()
         self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
@@ -55,9 +57,9 @@ class ImageDisplayOutput(BaseOutput):
         self.current_image = cv2.imread(self.image_path)
 
         if self.current_image is None:
-            self._logger.error(f"Failed to load image from path: {self.image_path}")
+            logger.error(f"Failed to load image from path: {self.image_path}")
         else:
-            self._logger.debug("Initial image loaded successfully.")
+            logger.debug("Initial image loaded successfully.")
             self.original_image = self.current_image.copy()
 
     def loop(self):  
@@ -67,7 +69,7 @@ class ImageDisplayOutput(BaseOutput):
         else:
             self.current_image = self._restore_image()
             self.send_message(service_name = self.service_name, data = self.current_image, queue = self.internal_queue, block = False )
-            self._logger.debug(f"Past Time: {int(time.time() - self.restoration_start_time)} - Remaining Time: {int(self.restoration_duration - (time.time() - self.restoration_start_time))}")
+            logger.debug(f"Past Time: {int(time.time() - self.restoration_start_time)} - Remaining Time: {int(self.restoration_duration - (time.time() - self.restoration_start_time))}")
         
         time.sleep(self.step_intervall_seconds)
 
@@ -85,7 +87,7 @@ class ImageDisplayOutput(BaseOutput):
         """
         Clean up resources, like destroying the display window.
         """
-        self._logger.info("Cleaning up ImageDisplayOutput")
+        logger.info("Cleaning up ImageDisplayOutput")
         pygame.quit()
 
     def _display_image(self, image):
@@ -114,7 +116,7 @@ class ImageDisplayOutput(BaseOutput):
         
         hls_image = cv2.merge([h, l, s])
         
-        self._logger.debug(f"Applied black & white filter with level {level}% saturation reduction")
+        logger.debug(f"Applied black & white filter with level {level}% saturation reduction")
         
         return cv2.cvtColor(hls_image, cv2.COLOR_HLS2BGR)
 
@@ -132,7 +134,7 @@ class ImageDisplayOutput(BaseOutput):
         if kernel_size % 2 == 0:
             kernel_size += 1
 
-        self._logger.debug(f"Applied blur filter with level {level}%")
+        logger.debug(f"Applied blur filter with level {level}%")
 
         return cv2.GaussianBlur(image, (kernel_size, kernel_size), 0)
     
@@ -151,7 +153,7 @@ class ImageDisplayOutput(BaseOutput):
         l = np.clip(l, 0, 255).astype(np.uint8)
         
         hls_image = cv2.merge([h, l, s])
-        self._logger.debug(f"Applied darkness filter with level {level}%, scale factor {scale_factor:.2f}")
+        logger.debug(f"Applied darkness filter with level {level}%, scale factor {scale_factor:.2f}")
         
         return cv2.cvtColor(hls_image, cv2.COLOR_HLS2BGR)
 
@@ -161,7 +163,7 @@ class ImageDisplayOutput(BaseOutput):
             case Stage.BLACK_WHITE:
                 if self.level < self.LEVEL_LIMIT:
                     self.level += self.level_steps
-                    self._logger.debug(f"Degrading - {self.stage} - Level before: {self.level - self.level_steps} Level after: {self.level} - Strenght: {self.level_steps}")
+                    logger.debug(f"Degrading - {self.stage} - Level before: {self.level - self.level_steps} Level after: {self.level} - Strenght: {self.level_steps}")
                     return self._apply_black_white(self.current_image, self.level)
                 else:
                     self.stage = Stage.BLURRY
@@ -171,7 +173,7 @@ class ImageDisplayOutput(BaseOutput):
             case Stage.BLURRY:
                 if self.level < self.LEVEL_LIMIT:
                     self.level += self.level_steps
-                    self._logger.debug(f"Degrading - {self.stage} - Level before: {self.level - self.level_steps} Level after: {self.level} - Strenght: {self.level_steps}")
+                    logger.debug(f"Degrading - {self.stage} - Level before: {self.level - self.level_steps} Level after: {self.level} - Strenght: {self.level_steps}")
                     return self._apply_blur(self.current_image, self.level)
                 else:
                     self.stage = Stage.LIGHTNESS
@@ -181,7 +183,7 @@ class ImageDisplayOutput(BaseOutput):
             case Stage.LIGHTNESS:
                 if self.level < self.LEVEL_LIMIT:
                     self.level += self.level_steps
-                    self._logger.debug(f"Degrading - {self.stage} - Level before: {self.level - self.level_steps} Level after: {self.level} - Strenght: {self.level_steps}")
+                    logger.debug(f"Degrading - {self.stage} - Level before: {self.level - self.level_steps} Level after: {self.level} - Strenght: {self.level_steps}")
                     return self._apply_darkness(self.current_image, self.level)
                 else:
                     return self.current_image
@@ -196,7 +198,7 @@ class ImageDisplayOutput(BaseOutput):
             case Stage.LIGHTNESS:
                 if self.level > 0:
                     self.level -= self.level_steps
-                    self._logger.debug(f"Restoring - {self.stage} - Level before: {self.level + self.level_steps} Level after: {self.level} - Strenght: {self.level_steps}")
+                    logger.debug(f"Restoring - {self.stage} - Level before: {self.level + self.level_steps} Level after: {self.level} - Strenght: {self.level_steps}")
                     temp_image = self._apply_black_white(self.original_image, self.LEVEL_LIMIT)
                     temp_image = self._apply_blur(temp_image, self.LEVEL_LIMIT)
                     return self._apply_darkness(temp_image, self.level)
@@ -207,7 +209,7 @@ class ImageDisplayOutput(BaseOutput):
             case Stage.BLURRY:
                 if self.level > 0:
                     self.level -= self.level_steps
-                    self._logger.debug(f"Restoring - {self.stage} - Level before: {self.level + self.level_steps} Level after: {self.level} - Strenght: {self.level_steps}")
+                    logger.debug(f"Restoring - {self.stage} - Level before: {self.level + self.level_steps} Level after: {self.level} - Strenght: {self.level_steps}")
                     temp_image = self._apply_black_white(self.original_image, self.LEVEL_LIMIT)
                     return self._apply_blur(temp_image, self.level)
                 else:
@@ -217,7 +219,7 @@ class ImageDisplayOutput(BaseOutput):
             case Stage.BLACK_WHITE:
                 if self.level > 0:
                     self.level -= self.level_steps
-                    self._logger.debug(f"Restoring - {self.stage} - Level before: {self.level + self.level_steps} Level after: {self.level} - Strenght: {self.level_steps}")
+                    logger.debug(f"Restoring - {self.stage} - Level before: {self.level + self.level_steps} Level after: {self.level} - Strenght: {self.level_steps}")
                     return self._apply_black_white(self.original_image, self.level)
                 else:
                     return self.current_image

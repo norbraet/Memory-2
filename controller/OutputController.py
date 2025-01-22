@@ -18,7 +18,7 @@ class OutputController():
         self.queue_threads = []
 
     def _intialize_logger(self):
-        logger = logging.getLogger(self.service_name)
+        logger = logging.getLogger(__name__)
         logger.setLevel(logging.DEBUG if self.debug else logging.INFO)
         return logger
     

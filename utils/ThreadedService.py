@@ -2,16 +2,17 @@ import threading
 import logging
 from abc import ABC, abstractmethod
 
+logger = logging.getLogger(__name__)
+
 class ThreadedService(ABC):
     def __init__(self, service_name, debug=False):
         self.service_name = service_name
+        logger.setLevel(logging.DEBUG if debug else logging.INFO)
         self._stop_event = threading.Event()
         self._thread = None
         self._is_running = False
         self.debug = debug
-        self._logger = logging.getLogger(service_name)
-        self._logger.setLevel(logging.DEBUG if debug else logging.INFO)
-        self._logger.info(f"{service_name} initialized")
+        logger.info(f"{service_name} initialized")
 
     @abstractmethod
     def setup(self):
@@ -45,7 +46,7 @@ class ThreadedService(ABC):
         self._is_running = True
         self._thread = threading.Thread(target=self._run, daemon=True)
         self._thread.start()
-        self._logger.info(f"Starting {self.service_name}")
+        logger.info(f"Starting {self.service_name}")
 
     def stop(self):
         """
@@ -56,20 +57,20 @@ class ThreadedService(ABC):
             try:
                 self._thread.join(timeout=5)
                 if self._thread.is_alive():
-                    self._logger.warning(f"Thread for {self.service_name} did not finished in time")
+                    logger.warning(f"Thread for {self.service_name} did not finished in time")
             except KeyboardInterrupt:
-                self._logger.warning(f"Interrupted while waiting for {self.service_name} to stop")
+                logger.warning(f"Interrupted while waiting for {self.service_name} to stop")
         self.cleanup()
         self._is_running = False
-        self._logger.info(f"Stopping {self.service_name}")
+        logger.info(f"Stopping {self.service_name}")
 
     def _run(self):
         """
         Internal method to run the loop in a thread.
         """
-        self._logger.info(f"{self.service_name} is running")
+        logger.info(f"{self.service_name} is running")
         while not self._stop_event.is_set():
             try:
                 self.loop()
             except Exception as e:
-                self._logger.error(f"Error in {self.service_name}: {e}")
+                logger.error(f"Error in {self.service_name}: {e}")

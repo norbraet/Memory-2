@@ -1,7 +1,10 @@
+import logging
+import time
 from gpiozero import DistanceSensor
 from sensors.BaseSensor import BaseSensor
 from dataclass.UltrasonicConfig import UltrasonicConfig
-import time
+
+logger = logging.getLogger(__name__)
 
 class UltrasonicSensor(BaseSensor):
     def __init__(self, 
@@ -10,6 +13,7 @@ class UltrasonicSensor(BaseSensor):
                  config: UltrasonicConfig = None):
         config = config or UltrasonicConfig()
         super().__init__(service_name, config, debug)
+        logger.setLevel(logging.DEBUG if debug else logging.INFO)
         self.config = config
         self.sensor = DistanceSensor(
             echo = config.echo_pin,
@@ -18,8 +22,7 @@ class UltrasonicSensor(BaseSensor):
         )
     
     def setup(self):
-        if self.debug:
-            self._logger.debug("Time to debug")
+        pass
 
     def loop(self):
         try:
@@ -27,7 +30,7 @@ class UltrasonicSensor(BaseSensor):
             
             if distance is not None:
                 distance_cm = int(distance * 100)
-                self._logger.debug(f"{distance_cm} cm")
+                logger.debug(f"{distance_cm} cm")
 
                 if distance_cm < self.config.threshold: 
                     scale_factor = self.config.threshold / distance_cm
@@ -42,7 +45,7 @@ class UltrasonicSensor(BaseSensor):
             time.sleep(self.config.loop_refresh_rate)
             
         except Exception as e:
-            self._logger.error(f"Error reading distance: {e}")
+            logger.error(f"Error reading distance: {e}")
        
     def cleanup(self):
         self.sensor.close()
