@@ -4,12 +4,8 @@ import time
 import pygame
 import numpy as np
 from outputs.BaseOutput import BaseOutput
-from enum import Enum, auto
+from enums.StageEnum import Stage
 
-class Stage(Enum):
-    BLACK_WHITE = auto()
-    BLURRY = auto()
-    LIGHTNESS = auto()
 
 class ImageDisplayOutput(BaseOutput):
     LEVEL_LIMIT = 100
@@ -201,9 +197,9 @@ class ImageDisplayOutput(BaseOutput):
                 if self.level > 0:
                     self.level -= self.level_steps
                     self._logger.debug(f"Restoring - {self.stage} - Level before: {self.level + self.level_steps} Level after: {self.level} - Strenght: {self.level_steps}")
-                    # temp_image = self._apply_black_white(self.original_image, self.LEVEL_LIMIT)
-                    # temp_image = self._apply_blur(temp_image, self.LEVEL_LIMIT)
-                    return self._apply_darkness(self.cache_image_black_white_blurry, self.level)
+                    temp_image = self._apply_black_white(self.original_image, self.LEVEL_LIMIT)
+                    temp_image = self._apply_blur(temp_image, self.LEVEL_LIMIT)
+                    return self._apply_darkness(temp_image, self.level)
                 else:
                     self.stage = Stage.BLURRY
                     self.level = self.LEVEL_LIMIT
@@ -212,8 +208,8 @@ class ImageDisplayOutput(BaseOutput):
                 if self.level > 0:
                     self.level -= self.level_steps
                     self._logger.debug(f"Restoring - {self.stage} - Level before: {self.level + self.level_steps} Level after: {self.level} - Strenght: {self.level_steps}")
-                    # temp_image = self._apply_black_white(self.original_image, self.LEVEL_LIMIT)
-                    return self._apply_blur(self.cache_image_black_white, self.level)
+                    temp_image = self._apply_black_white(self.original_image, self.LEVEL_LIMIT)
+                    return self._apply_blur(temp_image, self.level)
                 else:
                     self.stage = Stage.BLACK_WHITE
                     self.level = self.LEVEL_LIMIT
