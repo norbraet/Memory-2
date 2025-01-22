@@ -1,8 +1,9 @@
 from dataclasses import dataclass, field
 from typing import Tuple
+from dataclass.BaseConfig import BaseConfig
 
 @dataclass
-class FaceRecognitionConfig:
+class FaceRecognitionConfig(BaseConfig):
     scale_factor: float = 1.2
     downscale_factor: float = 0.5
     min_neighbors: int = 8 

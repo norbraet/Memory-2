@@ -18,6 +18,12 @@ class QueueListenerThread(ThreadedService):
 
     def loop(self):
         try:
+            """
+            TODO: Aktuell haben wir mit timeout=None eine unendlich lange Wartezeit. Man könnte sagen, nach dem Zeit x vergangen ist, dass der Sensor bockig wird und die Werte der 
+            config ändert. da die Config eine @dataclass sind, können die Werte im Nachhinein geändert werden. Auf der anderen Seite wenn viel Interaktion mit einem Sensor passiert, so kann
+            der Wert auch sich steigern. Dazu müsste ich bei jeder Interaktion den Wert erhöhen.
+            """
+            
             message = self.service.receive_message(queue= self.service.outgoing_queue, block=True, timeout=None)
             if message:
                 logger.debug(f"Received message from {message.service}: {message.data}")
