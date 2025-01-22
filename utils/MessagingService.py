@@ -31,11 +31,8 @@ class MessagingService:
         """
         source_queue = queue or self.incoming_queue
         if source_queue:
-            try:
-                message = source_queue.get(timeout = timeout) if block else source_queue.get_nowait()
-                if not isinstance(message, Message):
-                    raise ValueError("Received an invalid message type")
-                return message
-            except Empty:
-                print("Queue is empty. Returning None")
-                return None
+            message = source_queue.get(timeout = timeout) if block else source_queue.get_nowait()
+            if not isinstance(message, Message):
+                raise ValueError("Received an invalid message type")
+            return message
+            
