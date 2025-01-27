@@ -20,6 +20,7 @@ class UltrasonicSensor(BaseSensor):
             trigger = config.trigger_pin,
             max_distance = config.max_distance
         )
+        self.last_measured_distance = None
     
     def setup(self):
         pass
@@ -27,21 +28,21 @@ class UltrasonicSensor(BaseSensor):
     def loop(self):
         try:
             distance = self.sensor.distance
-            
-            if distance is not None:
+            if distance is not None and distance != self.last_measured_distance :
+                self.last_measured_distance = distance
                 distance_cm = int(distance * 100)
 
                 if distance_cm < self.config.threshold: 
-                    logger.debug(f"Distance: {distance_cm} cm | Strength: {self.config.level_steps} | Duration: {self.config.restoration_duration}")
                     scale_factor = self.config.threshold / distance_cm
                     message = self.config.level_steps * scale_factor
+                    logger.debug(f"Distance: {distance_cm} cm | Strength: {message} | Duration: {self.config.restoration_duration}")
                     self.send_message(service_name = self.service_name,
                                         data = {
                                             "time": self.config.restoration_duration,
                                             "level_steps": message
                                         },
                                         queue=self.outgoing_queue)
-                    time.sleep(self.config.restoration_duration * 0.9)
+                    # time.sleep(self.config.restoration_duration * 0.9)
             time.sleep(self.config.loop_refresh_rate)
             
         except Exception as e:
