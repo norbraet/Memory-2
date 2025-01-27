@@ -32,28 +32,31 @@ class QueueListenerThread(ThreadedService):
                     queue=self.output_queues[target_output],
                     metadata=getattr(message, 'metadata', None)
                 )
-                if self.config.level_steps < self.config.level_steps_max:
-                    logger.debug(f"{self.service.service_name} | I will increase restoration strength ({self.config.level_steps}) by {self.config.level_steps_interval}")
-                    self.config.level_steps += self.config.level_steps_interval
 
-                if self.config.restoration_duration < self.config.restoration_duration_max:
-                    logger.debug(f"{self.service.service_name} | I will increase restoration time ({self.config.restoration_duration}) by {self.config.restoration_duration_interval}")
-                    self.config.restoration_duration += self.config.restoration_duration_interval
-                
-                if hasattr(self.config, "sleep") and not self.config.sleep:
-                    return
-                time.sleep(self.config.restoration_duration * 0.9)
+                if isinstance(self.config, BaseConfig):
+                    if self.config.level_steps < self.config.level_steps_max:
+                        logger.debug(f"{self.service.service_name} | I will increase restoration strength ({self.config.level_steps}) by {self.config.level_steps_interval}")
+                        self.config.level_steps += self.config.level_steps_interval
+
+                    if self.config.restoration_duration < self.config.restoration_duration_max:
+                        logger.debug(f"{self.service.service_name} | I will increase restoration time ({self.config.restoration_duration}) by {self.config.restoration_duration_interval}")
+                        self.config.restoration_duration += self.config.restoration_duration_interval
+                    
+                    if hasattr(self.config, "sleep") and not self.config.sleep:
+                        return
+                    time.sleep(self.config.restoration_duration * 0.9)
 
         except Empty:
             logger.debug(f"{self.service.service_name} | No message received within timeout.")
-    
-            if self.config.level_steps > self.config.level_steps_min:
-                logger.debug(f"{self.service.service_name} | I will decrease strength ({self.config.level_steps}) by {self.config.level_steps_interval}")
-                self.config.level_steps -= self.config.level_steps_interval
-            
-            if self.config.restoration_duration > self.config.restoration_duration_min:
-                logger.debug(f"{self.service.service_name} | I will decrease restoration time ({self.config.restoration_duration}) by {self.config.restoration_duration_interval}")
-                self.config.restoration_duration -= self.config.restoration_duration_interval
+
+            if isinstance(self.config, BaseConfig):
+                if self.config.level_steps > self.config.level_steps_min:
+                    logger.debug(f"{self.service.service_name} | I will decrease strength ({self.config.level_steps}) by {self.config.level_steps_interval}")
+                    self.config.level_steps -= self.config.level_steps_interval
+                
+                if self.config.restoration_duration > self.config.restoration_duration_min:
+                    logger.debug(f"{self.service.service_name} | I will decrease restoration time ({self.config.restoration_duration}) by {self.config.restoration_duration_interval}")
+                    self.config.restoration_duration -= self.config.restoration_duration_interval
 
         except Exception as e:
             logger.error(f"Error in QueueListenerThread: {e}")

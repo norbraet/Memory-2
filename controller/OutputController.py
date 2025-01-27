@@ -18,6 +18,8 @@ class OutputController():
         self.sensors = None
         self.outputs = None
         self.queue_threads = []
+        self.output_incoming_queues = None
+        self.all_services = None
 
     def _intialize_logger(self):
         logger = logging.getLogger(__name__)
@@ -53,23 +55,23 @@ class OutputController():
             service_enum: output.incoming_queue 
             for service_enum, output in self.outputs.items()
         }
+
+        self.all_services = list(self.sensors.values()) + list(self.outputs.values())
         
     def _start_services_and_outputs(self):
         """
         Initialize and start all sensors and outputs.
         """
-        for sensor in self.sensors.values():
-            sensor.start()
+        for service in self.all_services:
+            service.start()
         
-        for output in self.outputs.values():
-            output.start()
 
     def _start_queue_threads(self):
-        for sensor in self.sensors.values():
+        for service in self.all_services:
             queue_thread = QueueListenerThread(
-                service=sensor,
+                service=service,
                 output_queues=self.output_incoming_queues,
-                debug=sensor.debug
+                debug=service.debug
             )
             self.queue_threads.append(queue_thread)
             queue_thread.start()
@@ -78,17 +80,11 @@ class OutputController():
         """
         Stop and clean up all services.
         """
-        for sensor in self.sensors.values():
+        for service in self.all_services:
             try:
-                sensor.stop()
+                service.stop()
             except KeyboardInterrupt:
-                self._logger.warning(f"Interrupted while stopping {sensor.service_name}")
-
-        for output in self.outputs.values():
-            try:
-                output.stop()
-            except KeyboardInterrupt:
-                self._logger.warning(f"Interrupted while stopping {output.service_name}")
+                self._logger.warning(f"Interrupted while stopping {service.service_name}")
     
     def _stop_queue_threads(self):
         for thread in self.queue_threads:

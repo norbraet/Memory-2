@@ -22,6 +22,7 @@ class ImageDisplayOutput(BaseOutput):
         :param level_steps: Step interval until the level limit is reached
         :param step_interval_seconds: Time interval between steps, in seconds.
         """
+        self.config = config
         super().__init__(service_name, config, debug)
         logger.setLevel(logging.DEBUG if debug else logging.INFO)
         self.window_name = self.service_name
