@@ -1,11 +1,12 @@
 from enums.ServicesEnum import ServicesEnum
+from outputs.BaseOutput import BaseOutput
 from outputs.ImageDisplayOutput import ImageDisplayOutput
+from outputs.VibrationMotorOutput import VibrationMotorOutput
+from sensors.BaseSensor import BaseSensor
 from sensors.FaceRecognition import FaceRecognition
 from sensors.TouchSensor import TouchSensor
 from sensors.UltrasonicSensor import UltrasonicSensor
 from utils.QueueListenerThread import QueueListenerThread
-from utils.MessagingService import MessagingService
-
 import logging
 
 class OutputController():
@@ -37,12 +38,13 @@ class OutputController():
         self.outputs[ServicesEnum.ImageDisplayOutput].trigger_action()
 
     def _setup(self):
-        self.outputs = {
-            ServicesEnum.ImageDisplayOutput: ImageDisplayOutput(service_name = ServicesEnum.ImageDisplayOutput.value, debug = False)
+        self.outputs: dict[ServicesEnum, BaseOutput] = {
+            ServicesEnum.ImageDisplayOutput: ImageDisplayOutput(service_name = ServicesEnum.ImageDisplayOutput.value, debug = False),
+            ServicesEnum.VibrationMotorOutput: VibrationMotorOutput(service_name=ServicesEnum.VibrationMotorOutput.value, debug = True)
         }
-        self.sensors = {
+        self.sensors: dict[ServicesEnum, BaseSensor] = {
             ServicesEnum.FaceRecognition: FaceRecognition(service_name = ServicesEnum.FaceRecognition.value, debug = False),
-            ServicesEnum.UltrasonicSensor: UltrasonicSensor(service_name = ServicesEnum.UltrasonicSensor.value, debug = True),
+            ServicesEnum.UltrasonicSensor: UltrasonicSensor(service_name = ServicesEnum.UltrasonicSensor.value, debug = False),
             ServicesEnum.TouchSensor: TouchSensor(service_name = ServicesEnum.TouchSensor.value, debug = False),
         }
         
