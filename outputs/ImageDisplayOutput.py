@@ -5,13 +5,14 @@ import pygame
 import numpy as np
 from outputs.BaseOutput import BaseOutput
 from enums.StageEnum import Stage
+from enums.ServicesEnum import ServicesEnum
 
 logger = logging.getLogger(__name__)
 
 class ImageDisplayOutput(BaseOutput):
     LEVEL_LIMIT = 100
 
-    def __init__(self, service_name, config = None, debug = False, image_path = "./assets/images/image.png", level_steps = 5, step_intervall_seconds = 0.1):
+    def __init__(self, service_name, config = None, debug = False, image_path = "./assets/images/image.png", level_steps = 1, step_intervall_seconds = 0.1):
         """
         A sensor-like class for displaying images, extending BaseOutput.
         :param service_name: Unique name for the service.
@@ -96,9 +97,14 @@ class ImageDisplayOutput(BaseOutput):
         """
         image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image_rgb = np.transpose(image_rgb, (1, 0, 2))  # Swap width and height dimensions
-        pygame_image = pygame.surfarray.make_surface(image_rgb)
-        self.screen.blit(pygame_image, (0, 0))
-        pygame.display.update()
+
+        if image_rgb.shape[0] > 0 and image_rgb.shape[1] > 0:
+            pygame_image = pygame.surfarray.make_surface(image_rgb)
+            self.screen.blit(pygame_image, (0, 0))
+            pygame.display.update()
+        else:
+            logger.error("Image dimensions are invalid for display.")
+
     
     def _apply_black_white(self, image, level):
         """
@@ -231,16 +237,28 @@ class ImageDisplayOutput(BaseOutput):
         Process the incoming queue and update restoration values.
         """
         if not self.incoming_queue.qsize() == 0:
-            data = self.receive_message(queue=self.incoming_queue).data
+            message = self.receive_message(queue=self.incoming_queue)
+            data = message.data
             self.restoration = True
             self.restoration_start_time = time.time()
-
-            if not self.reverse:
-                self.restoration_duration = data["time"]
-                self.level_steps = data["level_steps"]
-            else:
-                self.restoration_duration += data["time"] / self.difficulty
-                self.level_steps += data["level_steps"] / self.difficulty
+            
+            """ if message.service == ServicesEnum.TouchSensor.value and message.metadata and message.metadata.get("type"):
+                # TODO: Hier muss dann die opacity vom overlay angepasst werden
+                print(message.metadata["type"])
+                return
+            """
+            if message.metadata and isinstance(message.metadata, dict):
+                if "stage" in message.metadata:
+                    self.stage = message.metadata["stage"]
+                    logger.info(f"Stage updated to: {self.stage}")
+            
+            if isinstance(data, dict):
+                if not self.reverse and data.get("time") and data.get("level_steps"): 
+                    self.restoration_duration = data["time"]
+                    self.level_steps = data["level_steps"]
+                elif data.get("time") and data.get("level_steps"):
+                    self.restoration_duration += data["time"] / self.difficulty
+                    self.level_steps += data["level_steps"] / self.difficulty
 
     def _process_internal_queue(self):
         """

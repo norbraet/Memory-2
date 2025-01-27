@@ -9,12 +9,11 @@ from utils.MessagingService import MessagingService
 import logging
 
 class OutputController():
-    def __init__(self, service_name, config = None, debug = False):
-        self.service_name = service_name
+    def __init__(self, config = None, debug = False):
         self.config = config or {}
         self.debug = debug
         self._logger = self._intialize_logger()
-        self.services = None
+        self.sensors = None
         self.outputs = None
         self.queue_threads = []
 
@@ -41,28 +40,28 @@ class OutputController():
         self.outputs = {
             ServicesEnum.ImageDisplayOutput: ImageDisplayOutput(service_name = ServicesEnum.ImageDisplayOutput.value, debug = False)
         }
-        self.services = {
-            ServicesEnum.FaceRecognition: FaceRecognition(service_name = ServicesEnum.FaceRecognition.value, debug = True),
-            ServicesEnum.UltrasonicSensor: UltrasonicSensor(service_name = ServicesEnum.UltrasonicSensor.value, debug = False),
-            # ServicesEnum.TouchSensor: TouchSensor(service_name = ServicesEnum.TouchSensor.value, debug = False),
+        self.sensors = {
+            ServicesEnum.FaceRecognition: FaceRecognition(service_name = ServicesEnum.FaceRecognition.value, debug = False),
+            ServicesEnum.UltrasonicSensor: UltrasonicSensor(service_name = ServicesEnum.UltrasonicSensor.value, debug = True),
+            ServicesEnum.TouchSensor: TouchSensor(service_name = ServicesEnum.TouchSensor.value, debug = False),
         }
         
     def _start_services_and_outputs(self):
         """
-        Initialize and start all services.
+        Initialize and start all sensors and outputs.
         """
-        for service in self.services.values():
-            service.start()
+        for sensor in self.sensors.values():
+            sensor.start()
         
         for output in self.outputs.values():
             output.start()
 
     def _start_queue_threads(self):
-        for service in self.services.values():
+        for sensor in self.sensors.values():
             queue_thread = QueueListenerThread(
-                service=service,
+                service=sensor,
                 target_output=self.outputs[ServicesEnum.ImageDisplayOutput].incoming_queue,
-                debug=service.debug
+                debug=sensor.debug
             )
             self.queue_threads.append(queue_thread)
             queue_thread.start()
@@ -71,11 +70,11 @@ class OutputController():
         """
         Stop and clean up all services.
         """
-        for service in self.services.values():
+        for sensor in self.sensors.values():
             try:
-                service.stop()
+                sensor.stop()
             except KeyboardInterrupt:
-                self._logger.warning(f"Interrupted while stopping {service.service_name}")
+                self._logger.warning(f"Interrupted while stopping {sensor.service_name}")
 
         for output in self.outputs.values():
             try:

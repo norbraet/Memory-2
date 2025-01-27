@@ -107,12 +107,15 @@ class FaceRecognition(BaseSensor):
         }
 
         if len(detected_faces) > 0:
-            logger.info(f"Face detected: {detected_faces}")
+            logger.debug(f"Face detected: {detected_faces}")
 
             self.send_message(service_name = self.service_name,
                                 data = {
                                     "time": self.config.restoration_duration,
                                     "level_steps": self.config.level_steps,
                                 },
-                                queue=self.outgoing_queue)
+                                queue=self.outgoing_queue,
+                                metadata={
+                                    "stage": self.config.stage
+                                })
             time.sleep(self.config.restoration_duration * 0.9)

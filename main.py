@@ -29,7 +29,7 @@ def setup_logging():
 def main():
     setup_logging()
     
-    logic = OutputController(service_name="Logic", debug=False)
+    logic = OutputController(debug=False)
 
     try:
         logic.start()
