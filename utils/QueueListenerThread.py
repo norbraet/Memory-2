@@ -23,11 +23,12 @@ class QueueListenerThread(ThreadedService):
         try:
             message = self.service.receive_message(queue= self.service.outgoing_queue, block=True, timeout=30)
             if message:
-                logger.debug(f"Received message from {message.service}: {message.data}")
+                logger.debug(f"Received message from {message.service}: Data: {message.data}, Metadata: {message.metadata if message.metadata else 'None'}")
                 self.service.send_message(
                     service_name=self.service.service_name,
                     data=message.data,
-                    queue=self.target_output
+                    queue=self.target_output,
+                    metadata=getattr(message, 'metadata', None)
                 )
                 if self.config.level_steps < self.config.level_steps_max:
                     logger.debug(f"{self.service.service_name} | I will increase restoration strength ({self.config.level_steps}) by {self.config.level_steps_interval}")

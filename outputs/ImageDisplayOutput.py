@@ -242,6 +242,9 @@ class ImageDisplayOutput(BaseOutput):
                 print(message.metadata["type"])
                 return
             """
+            if message.metadata and "stage" in message.metadata:
+                self.stage = message.metadata["stage"]
+                logger.info(f"Stage updated to: {self.stage}")
             
             if not self.reverse and data.get("time") and data.get("level_steps"): 
                 self.restoration_duration = data["time"]

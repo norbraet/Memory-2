@@ -114,5 +114,8 @@ class FaceRecognition(BaseSensor):
                                     "time": self.config.restoration_duration,
                                     "level_steps": self.config.level_steps,
                                 },
-                                queue=self.outgoing_queue)
+                                queue=self.outgoing_queue,
+                                metadata={
+                                    "stage": self.config.stage
+                                })
             time.sleep(self.config.restoration_duration * 0.9)

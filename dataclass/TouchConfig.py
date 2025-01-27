@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from dataclass.BaseConfig import BaseConfig
+from enums.StageEnum import Stage
 
 @dataclass
 class TouchConfig(BaseConfig):
@@ -11,4 +12,5 @@ class TouchConfig(BaseConfig):
     restoration_duration_max: int = 1
     restoration_duration_min: int = 1
     restoration_duration_interval: int = 1
+    stage: Stage = Stage.BLACK_WHITE
     sleep: bool = False

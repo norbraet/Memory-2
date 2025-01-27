@@ -93,7 +93,10 @@ class TouchSensor(BaseSensor):
                                             "time": self.config.restoration_duration,
                                             "level_steps": self.config.level_steps
                                         },
-                                        queue=self.outgoing_queue)
+                                        queue=self.outgoing_queue,
+                                        metadata = {
+                                            "stage": self.config.stage
+                                        })
                         
                     elif event.value == 0:
                         # logger.debug("Touch up")

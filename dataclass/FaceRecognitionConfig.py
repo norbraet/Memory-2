@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Tuple
 from dataclass.BaseConfig import BaseConfig
+from enums.StageEnum import Stage
 
 @dataclass
 class FaceRecognitionConfig(BaseConfig):
@@ -16,3 +17,4 @@ class FaceRecognitionConfig(BaseConfig):
     restoration_duration_max: int = 30
     restoration_duration_min: int = 1
     restoration_duration_interval: int = 2
+    stage: Stage = Stage.BLACK_WHITE
