@@ -97,9 +97,14 @@ class ImageDisplayOutput(BaseOutput):
         """
         image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image_rgb = np.transpose(image_rgb, (1, 0, 2))  # Swap width and height dimensions
-        pygame_image = pygame.surfarray.make_surface(image_rgb)
-        self.screen.blit(pygame_image, (0, 0))
-        pygame.display.update()
+
+        if image_rgb.shape[0] > 0 and image_rgb.shape[1] > 0:
+            pygame_image = pygame.surfarray.make_surface(image_rgb)
+            self.screen.blit(pygame_image, (0, 0))
+            pygame.display.update()
+        else:
+            logger.error("Image dimensions are invalid for display.")
+
     
     def _apply_black_white(self, image, level):
         """
@@ -242,16 +247,18 @@ class ImageDisplayOutput(BaseOutput):
                 print(message.metadata["type"])
                 return
             """
-            if message.metadata and "stage" in message.metadata:
-                self.stage = message.metadata["stage"]
-                logger.info(f"Stage updated to: {self.stage}")
+            if message.metadata and isinstance(message.metadata, dict):
+                if "stage" in message.metadata:
+                    self.stage = message.metadata["stage"]
+                    logger.info(f"Stage updated to: {self.stage}")
             
-            if not self.reverse and data.get("time") and data.get("level_steps"): 
-                self.restoration_duration = data["time"]
-                self.level_steps = data["level_steps"]
-            elif data.get("time") and data.get("level_steps"):
-                self.restoration_duration += data["time"] / self.difficulty
-                self.level_steps += data["level_steps"] / self.difficulty
+            if isinstance(data, dict):
+                if not self.reverse and data.get("time") and data.get("level_steps"): 
+                    self.restoration_duration = data["time"]
+                    self.level_steps = data["level_steps"]
+                elif data.get("time") and data.get("level_steps"):
+                    self.restoration_duration += data["time"] / self.difficulty
+                    self.level_steps += data["level_steps"] / self.difficulty
 
     def _process_internal_queue(self):
         """

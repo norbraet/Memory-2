@@ -18,7 +18,8 @@ class UltrasonicSensor(BaseSensor):
         self.sensor = DistanceSensor(
             echo = config.echo_pin,
             trigger = config.trigger_pin,
-            max_distance = config.max_distance
+            max_distance = config.max_distance,
+            queue_len=1
         )
         self.last_measured_distance = None
     
