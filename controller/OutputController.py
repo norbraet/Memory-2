@@ -7,6 +7,7 @@ from sensors.FaceRecognition import FaceRecognition
 from sensors.TouchSensor import TouchSensor
 from sensors.UltrasonicSensor import UltrasonicSensor
 from utils.QueueListenerThread import QueueListenerThread
+from queue import Queue
 import logging
 
 class OutputController():
@@ -47,6 +48,11 @@ class OutputController():
             ServicesEnum.UltrasonicSensor: UltrasonicSensor(service_name = ServicesEnum.UltrasonicSensor.value, debug = False),
             ServicesEnum.TouchSensor: TouchSensor(service_name = ServicesEnum.TouchSensor.value, debug = False),
         }
+
+        self.output_incoming_queues: dict[ServicesEnum, Queue] = {
+            service_enum: output.incoming_queue 
+            for service_enum, output in self.outputs.items()
+        }
         
     def _start_services_and_outputs(self):
         """
@@ -62,7 +68,7 @@ class OutputController():
         for sensor in self.sensors.values():
             queue_thread = QueueListenerThread(
                 service=sensor,
-                target_output=self.outputs[ServicesEnum.ImageDisplayOutput].incoming_queue,
+                target_output=self.output_incoming_queues,
                 debug=sensor.debug
             )
             self.queue_threads.append(queue_thread)

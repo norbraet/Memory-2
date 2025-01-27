@@ -5,11 +5,12 @@ from sensors.BaseSensor import BaseSensor
 from outputs.BaseOutput import BaseOutput
 from queue import Empty, Queue
 from dataclass.BaseConfig import BaseConfig
+from enums.ServicesEnum import ServicesEnum
 
 logger = logging.getLogger(__name__)
 
 class QueueListenerThread(ThreadedService):
-    def __init__(self, service: BaseSensor | BaseOutput, target_output: Queue, debug=False):
+    def __init__(self, service: BaseSensor | BaseOutput, target_output: dict[ServicesEnum, Queue], debug=False):
         super().__init__(service.service_name, debug)
         logger.setLevel(logging.DEBUG if debug else logging.INFO)
         self.target_output = target_output
@@ -27,7 +28,7 @@ class QueueListenerThread(ThreadedService):
                 self.service.send_message(
                     service_name=self.service.service_name,
                     data=message.data,
-                    queue=self.target_output,
+                    queue=self.target_output[ServicesEnum.ImageDisplayOutput],
                     metadata=getattr(message, 'metadata', None)
                 )
                 if self.config.level_steps < self.config.level_steps_max:
