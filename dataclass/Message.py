@@ -1,6 +1,7 @@
 import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, Optional
+from enums.ServicesEnum import ServicesEnum
 
 @dataclass
 class Message:
@@ -8,6 +9,7 @@ class Message:
     data: any
     timestamp: float = field(default_factory=lambda: time.time())
     metadata: Optional[Dict[str, Any]] = None
+    target_output: Optional[ServicesEnum] = None
 
     def validate(self):
         """

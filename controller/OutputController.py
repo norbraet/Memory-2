@@ -44,9 +44,9 @@ class OutputController():
             ServicesEnum.VibrationMotorOutput: VibrationMotorOutput(service_name=ServicesEnum.VibrationMotorOutput.value, debug = True)
         }
         self.sensors: dict[ServicesEnum, BaseSensor] = {
-            ServicesEnum.FaceRecognition: FaceRecognition(service_name = ServicesEnum.FaceRecognition.value, debug = False),
-            ServicesEnum.UltrasonicSensor: UltrasonicSensor(service_name = ServicesEnum.UltrasonicSensor.value, debug = False),
-            ServicesEnum.TouchSensor: TouchSensor(service_name = ServicesEnum.TouchSensor.value, debug = False),
+            ServicesEnum.FaceRecognition: FaceRecognition(service_name = ServicesEnum.FaceRecognition.value, debug = True),
+            ServicesEnum.UltrasonicSensor: UltrasonicSensor(service_name = ServicesEnum.UltrasonicSensor.value, debug = True),
+            ServicesEnum.TouchSensor: TouchSensor(service_name = ServicesEnum.TouchSensor.value, debug = True),
         }
 
         self.output_incoming_queues: dict[ServicesEnum, Queue] = {
@@ -68,7 +68,7 @@ class OutputController():
         for sensor in self.sensors.values():
             queue_thread = QueueListenerThread(
                 service=sensor,
-                target_output=self.output_incoming_queues,
+                output_queues=self.output_incoming_queues,
                 debug=sensor.debug
             )
             self.queue_threads.append(queue_thread)
