@@ -223,6 +223,9 @@ class ImageDisplayOutput(BaseOutput):
                     temp_image = self._apply_blur(temp_image, self.LEVEL_LIMIT)
                     return self._apply_darkness(temp_image, self.level)
                 else:
+                    """
+                    TODO: Die Data ist noch hard-coded. Müsste eigentlich in die Config aufgenommen werden
+                    """
                     self.send_message(service_name = self.service_name, 
                                     data = {
                                         "time": 1,
@@ -241,6 +244,9 @@ class ImageDisplayOutput(BaseOutput):
                     temp_image = self._apply_black_white(self.original_image, self.LEVEL_LIMIT)
                     return self._apply_blur(temp_image, self.level)
                 else:
+                    """
+                    TODO: Die Data ist noch hard-coded. Müsste eigentlich in die Config aufgenommen werden
+                    """
                     self.send_message(service_name = self.service_name, 
                                     data = {
                                         "time": 1,
@@ -258,6 +264,9 @@ class ImageDisplayOutput(BaseOutput):
                     logger.debug(f"Restoring - {self.stage} - Level before: {self.level + self.level_steps} Level after: {self.level} - Strenght: {self.level_steps}")
                     return self._apply_black_white(self.original_image, self.level)
                 else:
+                    """
+                    TODO: Die Data ist noch hard-coded. Müsste eigentlich in die Config aufgenommen werden
+                    """
                     self.send_message(service_name = self.service_name, 
                                     data = {
                                         "time": 1,
