@@ -42,7 +42,7 @@ class OutputController():
 
     def _setup(self):
         self.outputs: dict[ServicesEnum, BaseOutput] = {
-            ServicesEnum.ImageDisplayOutput: ImageDisplayOutput(service_name = ServicesEnum.ImageDisplayOutput.value, debug = False),
+            ServicesEnum.ImageDisplayOutput: ImageDisplayOutput(service_name = ServicesEnum.ImageDisplayOutput.value, debug = True),
             ServicesEnum.VibrationMotorOutput: VibrationMotorOutput(service_name=ServicesEnum.VibrationMotorOutput.value, debug = True)
         }
         self.sensors: dict[ServicesEnum, BaseSensor] = {
