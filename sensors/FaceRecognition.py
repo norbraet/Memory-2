@@ -5,6 +5,7 @@ import logging
 from picamera2 import Picamera2
 from sensors.BaseSensor import BaseSensor
 from dataclass.FaceRecognitionConfig import FaceRecognitionConfig
+from enums.ServicesEnum import ServicesEnum
 
 logger = logging.getLogger(__name__)
 
@@ -116,6 +117,7 @@ class FaceRecognition(BaseSensor):
                                 },
                                 queue=self.outgoing_queue,
                                 metadata={
-                                    "stage": self.config.stage
-                                })
+                                    "stage": self.config.stage,
+                                },
+                                target_output = ServicesEnum.ImageDisplayOutput)
             time.sleep(self.config.restoration_duration * 0.9)

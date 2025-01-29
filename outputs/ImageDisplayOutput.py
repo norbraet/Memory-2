@@ -22,6 +22,7 @@ class ImageDisplayOutput(BaseOutput):
         :param level_steps: Step interval until the level limit is reached
         :param step_interval_seconds: Time interval between steps, in seconds.
         """
+        self.config = config
         super().__init__(service_name, config, debug)
         logger.setLevel(logging.DEBUG if debug else logging.INFO)
         self.window_name = self.service_name
@@ -29,7 +30,7 @@ class ImageDisplayOutput(BaseOutput):
         self.original_image = None
         self.current_image = None
 
-        self.stage = Stage.BLACK_WHITE
+        self.stage = Stage.START
         self.level = 0
         self.level_steps = level_steps
         self.level_steps_init = level_steps
@@ -41,8 +42,6 @@ class ImageDisplayOutput(BaseOutput):
         self.restoration_duration = 0
         self.restoration_start_time:float = None
 
-        self.cache_image_black_white = None
-        self.cache_image_black_white_blurry = None
     
     def setup(self):
         """
@@ -112,6 +111,9 @@ class ImageDisplayOutput(BaseOutput):
         :param image: The original image.
         :param level: Percentage of black and white to apply (0-100%).
         """
+        """
+        TODO: Schwar-Weiß Filter ist zu schnell
+        """
         hls_image = cv2.cvtColor(image, cv2.COLOR_BGR2HLS)
         h, l, s = cv2.split(hls_image)
         level = max(0, min(level, self.LEVEL_LIMIT))
@@ -122,7 +124,6 @@ class ImageDisplayOutput(BaseOutput):
         
         hls_image = cv2.merge([h, l, s])
         
-        logger.debug(f"Applied black & white filter with level {level}% saturation reduction")
         
         return cv2.cvtColor(hls_image, cv2.COLOR_HLS2BGR)
 
@@ -140,7 +141,6 @@ class ImageDisplayOutput(BaseOutput):
         if kernel_size % 2 == 0:
             kernel_size += 1
 
-        logger.debug(f"Applied blur filter with level {level}%")
 
         return cv2.GaussianBlur(image, (kernel_size, kernel_size), 0)
     
@@ -150,6 +150,10 @@ class ImageDisplayOutput(BaseOutput):
         :param image: The image to adjust brightness.
         :param level: The current brightness level (0 to LEVEL_LIMIT).
         """
+        """
+        TODO: Helligkeits Filter ist zu schnell
+        """
+        
         hls_image = cv2.cvtColor(image, cv2.COLOR_BGR2HLS)
         h, l, s = cv2.split(hls_image) 
         level = max(0, min(level, self.LEVEL_LIMIT))
@@ -159,13 +163,16 @@ class ImageDisplayOutput(BaseOutput):
         l = np.clip(l, 0, 255).astype(np.uint8)
         
         hls_image = cv2.merge([h, l, s])
-        logger.debug(f"Applied darkness filter with level {level}%, scale factor {scale_factor:.2f}")
         
         return cv2.cvtColor(hls_image, cv2.COLOR_HLS2BGR)
 
     
     def _degrade_image(self):
         match self.stage:
+            case Stage.START:
+                logger.debug(f"Degrading - {self.stage}")
+                self.stage = Stage.BLACK_WHITE
+                return self.current_image
             case Stage.BLACK_WHITE:
                 if self.level < self.LEVEL_LIMIT:
                     self.level += self.level_steps
@@ -174,7 +181,6 @@ class ImageDisplayOutput(BaseOutput):
                 else:
                     self.stage = Stage.BLURRY
                     self.level = 0
-                    self.cache_image_black_white = self.current_image.copy()
                     return self.current_image
             case Stage.BLURRY:
                 if self.level < self.LEVEL_LIMIT:
@@ -184,7 +190,6 @@ class ImageDisplayOutput(BaseOutput):
                 else:
                     self.stage = Stage.LIGHTNESS
                     self.level = 0
-                    self.cache_image_black_white_blurry = self.current_image.copy()
                     return self.current_image
             case Stage.LIGHTNESS:
                 if self.level < self.LEVEL_LIMIT:
@@ -192,7 +197,12 @@ class ImageDisplayOutput(BaseOutput):
                     logger.debug(f"Degrading - {self.stage} - Level before: {self.level - self.level_steps} Level after: {self.level} - Strenght: {self.level_steps}")
                     return self._apply_darkness(self.current_image, self.level)
                 else:
+                    self.stage = Stage.END
+                    self.level = self.LEVEL_LIMIT
                     return self.current_image
+            case Stage.END:
+                logger.debug(f"Degrading - Reached Stage: {self.stage}")
+                return self.current_image
             case _:
                 return self.current_image
 
@@ -201,34 +211,75 @@ class ImageDisplayOutput(BaseOutput):
         Gradually restore the image step by step, reversing the degradation stages.
         """
         match self.stage:
+            case Stage.END:
+                logger.debug(f"Restoring - Start from Stage: {self.stage}")
+                self.stage = Stage.LIGHTNESS
+                return self.current_image
             case Stage.LIGHTNESS:
                 if self.level > 0:
-                    self.level -= self.level_steps
+                    self.level = max(0, self.level - self.level_steps)
                     logger.debug(f"Restoring - {self.stage} - Level before: {self.level + self.level_steps} Level after: {self.level} - Strenght: {self.level_steps}")
                     temp_image = self._apply_black_white(self.original_image, self.LEVEL_LIMIT)
                     temp_image = self._apply_blur(temp_image, self.LEVEL_LIMIT)
                     return self._apply_darkness(temp_image, self.level)
                 else:
+                    """
+                    TODO: Die Data ist noch hard-coded. Müsste eigentlich in die Config aufgenommen werden
+                    """
+                    self.send_message(service_name = self.service_name, 
+                                    data = {
+                                        "time": 1,
+                                        "pwm": 0.33
+                                    }, 
+                                    queue = self.outgoing_queue, 
+                                    block = False,
+                                    target_output = ServicesEnum.VibrationMotorOutput )
                     self.stage = Stage.BLURRY
                     self.level = self.LEVEL_LIMIT
                     return self.current_image
             case Stage.BLURRY:
                 if self.level > 0:
-                    self.level -= self.level_steps
+                    self.level = max(0, self.level - self.level_steps)
                     logger.debug(f"Restoring - {self.stage} - Level before: {self.level + self.level_steps} Level after: {self.level} - Strenght: {self.level_steps}")
                     temp_image = self._apply_black_white(self.original_image, self.LEVEL_LIMIT)
                     return self._apply_blur(temp_image, self.level)
                 else:
+                    """
+                    TODO: Die Data ist noch hard-coded. Müsste eigentlich in die Config aufgenommen werden
+                    """
+                    self.send_message(service_name = self.service_name, 
+                                    data = {
+                                        "time": 1,
+                                        "pwm": 0.66
+                                    }, 
+                                    queue = self.outgoing_queue, 
+                                    block = False,
+                                    target_output = ServicesEnum.VibrationMotorOutput )
                     self.stage = Stage.BLACK_WHITE
                     self.level = self.LEVEL_LIMIT
                     return self.current_image
             case Stage.BLACK_WHITE:
                 if self.level > 0:
-                    self.level -= self.level_steps
+                    self.level = max(0, self.level - self.level_steps)
                     logger.debug(f"Restoring - {self.stage} - Level before: {self.level + self.level_steps} Level after: {self.level} - Strenght: {self.level_steps}")
                     return self._apply_black_white(self.original_image, self.level)
                 else:
+                    """
+                    TODO: Die Data ist noch hard-coded. Müsste eigentlich in die Config aufgenommen werden
+                    """
+                    self.send_message(service_name = self.service_name, 
+                                    data = {
+                                        "time": 1,
+                                        "pwm": 1
+                                    }, 
+                                    queue = self.outgoing_queue, 
+                                    block = False,
+                                    target_output = ServicesEnum.VibrationMotorOutput )
+                    self.stage = Stage.START
                     return self.current_image
+            case Stage.START:
+                logger.debug(f"Restoring - Reached Stage: {self.stage}")
+                return self.current_image
             case _:
                 return self.current_image
 

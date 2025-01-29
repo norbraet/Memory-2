@@ -3,6 +3,7 @@ import time
 from evdev import InputDevice, ecodes, list_devices
 from sensors.BaseSensor import BaseSensor
 from dataclass.TouchConfig import TouchConfig
+from enums.ServicesEnum import ServicesEnum
 
 logger = logging.getLogger(__name__)
 
@@ -95,8 +96,9 @@ class TouchSensor(BaseSensor):
                                         },
                                         queue=self.outgoing_queue,
                                         metadata = {
-                                            "stage": self.config.stage
-                                        })
+                                            "stage": self.config.stage,
+                                        },
+                                        target_output = ServicesEnum.ImageDisplayOutput)
                         
                     elif event.value == 0:
                         # logger.debug("Touch up")

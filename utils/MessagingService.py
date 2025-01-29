@@ -1,5 +1,6 @@
 from queue import Queue, Empty, Full
 from dataclass.Message import Message
+from enums.ServicesEnum import ServicesEnum
 
 class MessagingService:
     def __init__(self):
@@ -10,13 +11,13 @@ class MessagingService:
         self.incoming_queue = Queue()
         self.internal_queue = Queue()
 
-    def send_message(self, service_name, data, metadata = None, queue: Queue = None, block = True, timeout = None):
+    def send_message(self, service_name, data, metadata = None, queue: Queue = None, block = True, timeout = None, target_output:ServicesEnum = None):
         """
         Send a message to the specified queue.
         """
         target_queue = queue or self.outgoing_queue
         if target_queue:
-            message = Message(service = service_name, data = data, metadata = metadata)
+            message = Message(service = service_name, data = data, metadata = metadata, target_output = target_output)
             try:
                 if block:
                     target_queue.put(message, timeout = timeout)

@@ -3,6 +3,7 @@ import time
 from gpiozero import DistanceSensor
 from sensors.BaseSensor import BaseSensor
 from dataclass.UltrasonicConfig import UltrasonicConfig
+from enums.ServicesEnum import ServicesEnum
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +43,8 @@ class UltrasonicSensor(BaseSensor):
                                             "time": self.config.restoration_duration,
                                             "level_steps": message
                                         },
-                                        queue=self.outgoing_queue)
+                                        queue=self.outgoing_queue,
+                                        target_output = ServicesEnum.ImageDisplayOutput)
                     time.sleep(self.config.restoration_duration * 0.9)
             time.sleep(self.config.loop_refresh_rate)
             
