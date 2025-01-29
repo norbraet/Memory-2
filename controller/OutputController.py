@@ -2,6 +2,7 @@ from enums.ServicesEnum import ServicesEnum
 from outputs.BaseOutput import BaseOutput
 from outputs.ImageDisplayOutput import ImageDisplayOutput
 from outputs.VibrationMotorOutput import VibrationMotorOutput
+from outputs.LedOutput import LedOutput
 from sensors.BaseSensor import BaseSensor
 from sensors.FaceRecognition import FaceRecognition
 from sensors.TouchSensor import TouchSensor
@@ -43,7 +44,8 @@ class OutputController():
     def _setup(self):
         self.outputs: dict[ServicesEnum, BaseOutput] = {
             ServicesEnum.ImageDisplayOutput: ImageDisplayOutput(service_name = ServicesEnum.ImageDisplayOutput.value, debug = True),
-            ServicesEnum.VibrationMotorOutput: VibrationMotorOutput(service_name=ServicesEnum.VibrationMotorOutput.value, debug = True)
+            ServicesEnum.VibrationMotorOutput: VibrationMotorOutput(service_name=ServicesEnum.VibrationMotorOutput.value, debug = True),
+            ServicesEnum.LedOutput: LedOutput(service_name=ServicesEnum.LedOutput.value, debug = True )
         }
         self.sensors: dict[ServicesEnum, BaseSensor] = {
             ServicesEnum.FaceRecognition: FaceRecognition(service_name = ServicesEnum.FaceRecognition.value, debug = True),
