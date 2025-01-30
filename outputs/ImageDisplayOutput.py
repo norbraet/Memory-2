@@ -54,7 +54,7 @@ class ImageDisplayOutput(BaseOutput):
         pygame.mouse.set_visible(False)
         pygame.display.set_caption(self.window_name)
         
-        self.current_image = cv2.imread(self.image_path)
+        self.current_image = cv2.imread(self.image_path, cv2.IMREAD_COLOR)
 
         if self.current_image is None:
             logger.error(f"Failed to load image from path: {self.image_path}")
@@ -102,7 +102,6 @@ class ImageDisplayOutput(BaseOutput):
             pygame.display.update()
         else:
             logger.error("Image dimensions are invalid for display.")
-
     
     def _apply_black_white(self, image, level):
         """
@@ -110,21 +109,13 @@ class ImageDisplayOutput(BaseOutput):
         :param image: The original image.
         :param level: Percentage of black and white to apply (0-100%).
         """
-        """
-        TODO: Schwar-Weiß Filter ist zu schnell
-        """
-        hls_image = cv2.cvtColor(image, cv2.COLOR_BGR2HLS)
-        h, l, s = cv2.split(hls_image)
-        level = max(0, min(level, self.LEVEL_LIMIT))
-        scale_factor = (self.LEVEL_LIMIT - level) / float(self.LEVEL_LIMIT)
-        
-        s = cv2.multiply(s, scale_factor)
-        s = cv2.min(s, 255).astype(np.uint8)
-        
-        hls_image = cv2.merge([h, l, s])
-        
-        
-        return cv2.cvtColor(hls_image, cv2.COLOR_HLS2BGR)
+        normalized_intensity = (level / self.LEVEL_LIMIT) ** 4 # TODO: Erhöhe den Exponenten um einen noch langsameren Effekt zu haben 
+        logger.info(f"Intensity: {normalized_intensity}")
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        gray_bgr = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
+        blended = cv2.addWeighted(gray_bgr, normalized_intensity, image, 1 - normalized_intensity, 0)
+
+        return blended
 
     def _apply_blur(self, image, level):
         """
@@ -156,7 +147,7 @@ class ImageDisplayOutput(BaseOutput):
         hls_image = cv2.cvtColor(image, cv2.COLOR_BGR2HLS)
         h, l, s = cv2.split(hls_image) 
         level = max(0, min(level, self.LEVEL_LIMIT))
-        scale_factor = 1.0 - (level / float(self.LEVEL_LIMIT)) ** 1.5  # Exponential scaling
+        scale_factor = 1.0 - (level / float(self.LEVEL_LIMIT)) ** 10  # TODO: Erhöhe den Exponenten um einen noch langsameren Effekt zu haben 
         
         l = cv2.multiply(l.astype(np.float32), scale_factor)
         l = np.clip(l, 0, 255).astype(np.uint8)
