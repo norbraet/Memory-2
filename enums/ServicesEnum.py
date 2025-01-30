@@ -6,3 +6,4 @@ class ServicesEnum(Enum):
     TouchSensor = "Touch Sensor"
     ImageDisplayOutput = "Image Display Output"
     VibrationMotorOutput = "Vibration Motor Output"
+    LedOutput = "LED Output"
