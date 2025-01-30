@@ -44,7 +44,7 @@ class QueueListenerThread(ThreadedService):
                     
                     if hasattr(self.config, "sleep") and not self.config.sleep:
                         return
-                    time.sleep(self.config.restoration_duration * 0.9)
+                    # time.sleep(self.config.restoration_duration * 0.9) # TODO: Kann raus
 
         except Empty:
             logger.debug(f"{self.service.service_name} | No message received within timeout.")

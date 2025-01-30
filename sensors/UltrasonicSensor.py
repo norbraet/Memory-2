@@ -22,7 +22,7 @@ class UltrasonicSensor(BaseSensor):
             max_distance = config.max_distance,
             queue_len=1
         )
-        self.last_measured_distance = None
+        self.last_measured_distance = self.config.max_distance
     
     def setup(self):
         pass
@@ -30,22 +30,32 @@ class UltrasonicSensor(BaseSensor):
     def loop(self):
         try:
             distance = self.sensor.distance
-            if distance is not None and distance != self.last_measured_distance :
+            if distance is not None and distance != self.last_measured_distance and abs(distance - self.last_measured_distance) <= 5:
                 self.last_measured_distance = distance
                 distance_cm = int(distance * 100)
 
                 if distance_cm < self.config.threshold: 
-                    scale_factor = self.config.threshold / distance_cm
-                    message = self.config.level_steps * scale_factor
-                    logger.debug(f"Distance: {distance_cm} cm | Strength: {message} | Duration: {self.config.restoration_duration}")
+                    logger.debug(f"Distance: {distance_cm} cm | Strength: {self.config.level_steps} | Duration: {self.config.restoration_duration}")
+
                     self.send_message(service_name = self.service_name,
                                         data = {
                                             "time": self.config.restoration_duration,
-                                            "level_steps": message
+                                            "level_steps": self.config.level_steps
                                         },
                                         queue=self.outgoing_queue,
-                                        target_output = ServicesEnum.ImageDisplayOutput)
-                    time.sleep(self.config.restoration_duration * 0.9)
+                                        target_output = ServicesEnum.ImageDisplayOutput,
+                                        block=False)
+                    logger.debug("UltrasoniceSensor |Sende jetzt eine Nachricht an LedOutput ")
+                    self.send_message(service_name = self.service_name,
+                                        data = {
+                                            "time": self.config.restoration_duration,
+                                            "distance": distance_cm,
+                                            "threshold": self.config.threshold
+                                        },
+                                        queue=self.outgoing_queue,
+                                        target_output = ServicesEnum.LedOutput,
+                                        block=False)
+                    time.sleep(self.config.restoration_duration * 0.7)
             time.sleep(self.config.loop_refresh_rate)
             
         except Exception as e:
