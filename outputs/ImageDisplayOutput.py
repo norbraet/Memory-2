@@ -139,11 +139,7 @@ class ImageDisplayOutput(BaseOutput):
         Gradually apply brightness change, or reduce brightness.
         :param image: The image to adjust brightness.
         :param level: The current brightness level (0 to LEVEL_LIMIT).
-        """
-        """
-        TODO: Helligkeits Filter ist zu schnell
-        """
-        
+        """       
         hls_image = cv2.cvtColor(image, cv2.COLOR_BGR2HLS)
         h, l, s = cv2.split(hls_image) 
         level = max(0, min(level, self.LEVEL_LIMIT))
