@@ -69,7 +69,6 @@ class ImageDisplayOutput(BaseOutput):
         else:
             self.current_image = self._restore_image()
             self.send_message(service_name = self.service_name, data = self.current_image, queue = self.internal_queue, block = False )
-            logger.debug(f"Past Time: {int(time.time() - self.restoration_start_time)} - Remaining Time: {int(self.restoration_duration - (time.time() - self.restoration_start_time))}")
         
         time.sleep(self.step_intervall_seconds)
 
@@ -176,7 +175,7 @@ class ImageDisplayOutput(BaseOutput):
             case Stage.BLACK_WHITE:
                 if self.level < self.LEVEL_LIMIT:
                     self.level += self.level_steps
-                    logger.debug(f"Degrading - {self.stage} - Level before: {self.level - self.level_steps} Level after: {self.level} - Strenght: {self.level_steps}")
+                    logger.debug(f"Degrading - {self.stage} - Level: {self.level - self.level_steps} -> {self.level} - Strenght: {self.level_steps}")
                     return self._apply_black_white(self.current_image, self.level)
                 else:
                     self.stage = Stage.BLURRY
@@ -185,7 +184,7 @@ class ImageDisplayOutput(BaseOutput):
             case Stage.BLURRY:
                 if self.level < self.LEVEL_LIMIT:
                     self.level += self.level_steps
-                    logger.debug(f"Degrading - {self.stage} - Level before: {self.level - self.level_steps} Level after: {self.level} - Strenght: {self.level_steps}")
+                    logger.debug(f"Degrading - {self.stage} - Level: {self.level - self.level_steps} -> {self.level} - Strenght: {self.level_steps}")
                     return self._apply_blur(self.current_image, self.level)
                 else:
                     self.stage = Stage.LIGHTNESS
@@ -194,7 +193,7 @@ class ImageDisplayOutput(BaseOutput):
             case Stage.LIGHTNESS:
                 if self.level < self.LEVEL_LIMIT:
                     self.level += self.level_steps
-                    logger.debug(f"Degrading - {self.stage} - Level before: {self.level - self.level_steps} Level after: {self.level} - Strenght: {self.level_steps}")
+                    logger.debug(f"Degrading - {self.stage} - Level: {self.level - self.level_steps} -> {self.level} - Strenght: {self.level_steps}")
                     return self._apply_darkness(self.current_image, self.level)
                 else:
                     self.stage = Stage.END
@@ -218,7 +217,7 @@ class ImageDisplayOutput(BaseOutput):
             case Stage.LIGHTNESS:
                 if self.level > 0:
                     self.level = max(0, self.level - self.level_steps)
-                    logger.debug(f"Restoring - {self.stage} - Level before: {self.level + self.level_steps} Level after: {self.level} - Strenght: {self.level_steps}")
+                    logger.debug(f"Restoring - {self.stage} - Level: {self.level - self.level_steps} -> {self.level} - Strenght: {self.level_steps} Past Time: {int(time.time() - self.restoration_start_time)} - Remaining Time: {int(self.restoration_duration - (time.time() - self.restoration_start_time))}")
                     temp_image = self._apply_black_white(self.original_image, self.LEVEL_LIMIT)
                     temp_image = self._apply_blur(temp_image, self.LEVEL_LIMIT)
                     return self._apply_darkness(temp_image, self.level)
@@ -240,7 +239,7 @@ class ImageDisplayOutput(BaseOutput):
             case Stage.BLURRY:
                 if self.level > 0:
                     self.level = max(0, self.level - self.level_steps)
-                    logger.debug(f"Restoring - {self.stage} - Level before: {self.level + self.level_steps} Level after: {self.level} - Strenght: {self.level_steps}")
+                    logger.debug(f"Restoring - {self.stage} - Level: {self.level - self.level_steps} -> {self.level} - Strenght: {self.level_steps} Past Time: {int(time.time() - self.restoration_start_time)} - Remaining Time: {int(self.restoration_duration - (time.time() - self.restoration_start_time))}")
                     temp_image = self._apply_black_white(self.original_image, self.LEVEL_LIMIT)
                     return self._apply_blur(temp_image, self.level)
                 else:
@@ -261,7 +260,7 @@ class ImageDisplayOutput(BaseOutput):
             case Stage.BLACK_WHITE:
                 if self.level > 0:
                     self.level = max(0, self.level - self.level_steps)
-                    logger.debug(f"Restoring - {self.stage} - Level before: {self.level + self.level_steps} Level after: {self.level} - Strenght: {self.level_steps}")
+                    logger.debug(f"Restoring - {self.stage} - Level: {self.level - self.level_steps} -> {self.level} - Strenght: {self.level_steps} Past Time: {int(time.time() - self.restoration_start_time)} - Remaining Time: {int(self.restoration_duration - (time.time() - self.restoration_start_time))}")
                     return self._apply_black_white(self.original_image, self.level)
                 else:
                     """
@@ -278,7 +277,7 @@ class ImageDisplayOutput(BaseOutput):
                     self.stage = Stage.START
                     return self.current_image
             case Stage.START:
-                logger.debug(f"Restoring - Reached Stage: {self.stage}")
+                logger.debug(f"Restoring - Reached Stage: {self.stage} Past Time: {int(time.time() - self.restoration_start_time)} - Remaining Time: {int(self.restoration_duration - (time.time() - self.restoration_start_time))}")
                 return self.current_image
             case _:
                 return self.current_image
