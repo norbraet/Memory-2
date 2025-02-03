@@ -8,6 +8,9 @@ from sensors.FaceRecognition import FaceRecognition
 from sensors.TouchSensor import TouchSensor
 from sensors.UltrasonicSensor import UltrasonicSensor
 from utils.QueueListenerThread import QueueListenerThread
+from dataclass.FaceRecognitionConfig import FaceRecognitionConfig
+from dataclass.UltrasonicConfig import UltrasonicConfig
+
 from queue import Queue
 import logging
 
@@ -42,16 +45,10 @@ class OutputController():
         self.outputs[ServicesEnum.ImageDisplayOutput].trigger_action()
 
     def _setup(self):
-        self.outputs: dict[ServicesEnum, BaseOutput] = {
-            ServicesEnum.ImageDisplayOutput: ImageDisplayOutput(service_name = ServicesEnum.ImageDisplayOutput.value, debug = True),
-            ServicesEnum.VibrationMotorOutput: VibrationMotorOutput(service_name=ServicesEnum.VibrationMotorOutput.value, debug = True),
-            ServicesEnum.LedOutput: LedOutput(service_name=ServicesEnum.LedOutput.value, debug = True )
-        }
-        self.sensors: dict[ServicesEnum, BaseSensor] = {
-            ServicesEnum.FaceRecognition: FaceRecognition(service_name = ServicesEnum.FaceRecognition.value, debug = True),
-            ServicesEnum.UltrasonicSensor: UltrasonicSensor(service_name = ServicesEnum.UltrasonicSensor.value, debug = True),
-            ServicesEnum.TouchSensor: TouchSensor(service_name = ServicesEnum.TouchSensor.value, debug = True),
-        }
+        
+        # self._setup_normal()
+        # self._setup_open()
+        self._setup_reservedly()
 
         self.output_incoming_queues: dict[ServicesEnum, Queue] = {
             service_enum: output.incoming_queue 
@@ -91,3 +88,81 @@ class OutputController():
     def _stop_queue_threads(self):
         for thread in self.queue_threads:
             thread.stop()
+
+    def _setup_normal(self):
+        self.outputs: dict[ServicesEnum, BaseOutput] = {
+            ServicesEnum.ImageDisplayOutput: ImageDisplayOutput(service_name = ServicesEnum.ImageDisplayOutput.value, debug = True),
+            ServicesEnum.VibrationMotorOutput: VibrationMotorOutput(service_name=ServicesEnum.VibrationMotorOutput.value, debug = True),
+            ServicesEnum.LedOutput: LedOutput(service_name=ServicesEnum.LedOutput.value, debug = True )
+        }
+        self.sensors: dict[ServicesEnum, BaseSensor] = {
+            ServicesEnum.FaceRecognition: FaceRecognition(service_name = ServicesEnum.FaceRecognition.value, debug = True),
+            ServicesEnum.UltrasonicSensor: UltrasonicSensor(service_name = ServicesEnum.UltrasonicSensor.value, debug = True),
+            ServicesEnum.TouchSensor: TouchSensor(service_name = ServicesEnum.TouchSensor.value, debug = True),
+        } 
+
+    def _setup_open(self):
+        faceRecognitionConfig = FaceRecognitionConfig(
+            level_steps = 100,
+            level_steps_max = 100,
+            level_steps_min = 80,
+            level_steps_interval = 10,
+            restoration_duration = 20,
+            restoration_duration_max = 30,
+            restoration_duration_min = 10,
+            restoration_duration_interval = 5
+        )
+        ultrasonicSensorConfig = UltrasonicConfig(
+            level_steps = 80,
+            level_steps_max = 100,
+            level_steps_min = 50,
+            level_steps_interval = 10,
+            restoration_duration = 5,
+            restoration_duration_max = 10,
+            restoration_duration_min = 1,
+            restoration_duration_interval = 1,
+            threshold = 300
+        )
+        self.outputs: dict[ServicesEnum, BaseOutput] = {
+            ServicesEnum.ImageDisplayOutput: ImageDisplayOutput(service_name = ServicesEnum.ImageDisplayOutput.value, debug = True),
+            ServicesEnum.VibrationMotorOutput: VibrationMotorOutput(service_name=ServicesEnum.VibrationMotorOutput.value, debug = True),
+            ServicesEnum.LedOutput: LedOutput(service_name=ServicesEnum.LedOutput.value, debug = True )
+        }
+        self.sensors: dict[ServicesEnum, BaseSensor] = {
+            ServicesEnum.FaceRecognition: FaceRecognition(service_name = ServicesEnum.FaceRecognition.value, debug = True, config=faceRecognitionConfig),
+            ServicesEnum.UltrasonicSensor: UltrasonicSensor(service_name = ServicesEnum.UltrasonicSensor.value, debug = True, config = ultrasonicSensorConfig),
+            ServicesEnum.TouchSensor: TouchSensor(service_name = ServicesEnum.TouchSensor.value, debug = True),
+        }
+
+    def _setup_reservedly(self):
+        faceRecognitionConfig = FaceRecognitionConfig(
+            level_steps = 10,
+            level_steps_max = 100,
+            level_steps_min = 0,
+            level_steps_interval = 4,
+            restoration_duration = 4,
+            restoration_duration_max = 10,
+            restoration_duration_min = 1,
+            restoration_duration_interval = 1
+        )
+        ultrasonicSensorConfig = UltrasonicConfig(
+            level_steps = 0.1,
+            level_steps_max = 1,
+            level_steps_min = 0.1,
+            level_steps_interval = 0.1,
+            restoration_duration = 0.5,
+            restoration_duration_max = 1,
+            restoration_duration_min = 0.1,
+            restoration_duration_interval = 0.1,
+            threshold = 50
+        )
+        self.outputs: dict[ServicesEnum, BaseOutput] = {
+            ServicesEnum.ImageDisplayOutput: ImageDisplayOutput(service_name = ServicesEnum.ImageDisplayOutput.value, debug = True, level_steps=10),
+            ServicesEnum.VibrationMotorOutput: VibrationMotorOutput(service_name=ServicesEnum.VibrationMotorOutput.value, debug = True),
+            ServicesEnum.LedOutput: LedOutput(service_name=ServicesEnum.LedOutput.value, debug = True )
+        }
+        self.sensors: dict[ServicesEnum, BaseSensor] = {
+            ServicesEnum.FaceRecognition: FaceRecognition(service_name = ServicesEnum.FaceRecognition.value, debug = True, config=faceRecognitionConfig),
+            ServicesEnum.UltrasonicSensor: UltrasonicSensor(service_name = ServicesEnum.UltrasonicSensor.value, debug = True, config = ultrasonicSensorConfig),
+            ServicesEnum.TouchSensor: TouchSensor(service_name = ServicesEnum.TouchSensor.value, debug = True),
+        }
