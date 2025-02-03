@@ -44,8 +44,8 @@ class LedOutput(BaseOutput):
             sleep(duration)
             self._set_color(r = 0, g = 0, b = 0)
 
-            for test_distance in range(0, threshold + 1, 10):  
-                 print(f"Distance: {test_distance} cm → Color: {self._calculate_led_color(test_distance, threshold)}")
+            """ for test_distance in range(0, threshold + 1, 10):  
+                 print(f"Distance: {test_distance} cm → Color: {self._calculate_led_color(test_distance, threshold)}") """
 
 
     def trigger_action(self, data):
