@@ -110,7 +110,6 @@ class ImageDisplayOutput(BaseOutput):
         :param level: Percentage of black and white to apply (0-100%).
         """
         normalized_intensity = (level / self.LEVEL_LIMIT) ** 4 # TODO: Erhöhe den Exponenten um einen noch langsameren Effekt zu haben 
-        logger.info(f"Intensity: {normalized_intensity}")
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         gray_bgr = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
         blended = cv2.addWeighted(gray_bgr, normalized_intensity, image, 1 - normalized_intensity, 0)
